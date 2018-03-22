@@ -2,6 +2,9 @@
 bin/
 obj/
 
+# IDE files
+lang-mu.layout
+
 # Prerequisites
 *.d
 
