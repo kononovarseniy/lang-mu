@@ -30,6 +30,10 @@
 				<Linker>
 					<Add option="-s" />
 				</Linker>
+				<ExtraCommands>
+					<Add before="flex -o mu.scanner.c mu.l" />
+					<Add before="bison -v -d -o mu.parser.c mu.y" />
+				</ExtraCommands>
 			</Target>
 		</Build>
 		<Compiler>

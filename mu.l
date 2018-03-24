@@ -4,30 +4,53 @@
 #include <string.h>
 
 #include "mu.parser.h"
+#include "strutils.h"
 
 int yyerror(char *s);
-
-char *copystr(const char *s)
-{
-    char *res = malloc((strlen(yytext) + 1)*sizeof(char));
-    strcpy(res, s);
-    return res;
-}
-
 %}
 
 %option noyywrap
 
 
-digit [0-9]
+digit   [0-9]
+letter  [a-zA-Z]
+other   [_,.!?:;~@#$%^&+=|<>\\\-]
+
+letdig  {letter}|{digit}
+letoth  {letter}|{other}
+all     {letter}|{other}|{digit}
+
+noncomment  "/"{other}
+
+name_start  {letoth}|("/"{all})|"*"
+name_char   {all}|("/"{all})|"*"
+name_end    ({all}|[/*])?
+name        {name_start}{name_char}*{name_end}
+
+%x slcomment mlcomment
 
 %%
 
-{digit}+    { yylval.int_val = atoi(yytext); return INTEGER_LITERAL; }
-"+"         { yylval.op_val = copystr(yytext); return PLUS; }
-"*"         { yylval.op_val = copystr(yytext); return MULT; }
+"("     return OPEN_PAREN;
+")"     return CLOSE_PAREN;
+"["     return OPEN_BRACKET;
+"]"     return CLOSE_BRACKET;
+"{"     return OPEN_BRACE;
+"}"     return CLOSE_BRACE;
 
-[ \t]*      {}
+"//"                BEGIN(slcomment);
+<slcomment>[^\n]*   {}
+<slcomment>\n       { yylineno++; BEGIN(INITIAL); }
+
+"/*"                    BEGIN(mlcomment);
+<mlcomment>[^*\n]*      {}
+<mlcomment>"*"+[^*/\n]  {}
+<mlcomment>\n           yylineno++;
+<mlcomment>"*"+"/"      BEGIN(INITIAL);
+
+{name}  { yylval.name = copystr(yytext); return NAME; }
+
+[ \t\r]*  {}
 [\n]        { yylineno++; }
 
 .           { printf("SCANNER "); yyerror("Unexpected character"); exit(1); }
