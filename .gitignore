@@ -4,6 +4,13 @@ obj/
 
 # IDE files
 lang-mu.layout
+lang-mu.depend
+
+# Flex, Bison output
+mu.parser.h
+mu.parser.c
+mu.parser.output
+mu.scanner.c
 
 # Prerequisites
 *.d

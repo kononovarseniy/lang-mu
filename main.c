@@ -1,8 +1,19 @@
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-int main()
+int yyparse();
+
+int main(int argc, char **argv)
 {
-    printf("Please create me!!!");
+    FILE *f;
+    if ((f = freopen("tests/in.mu", "r", stdin)) == NULL)
+    {
+        perror("Unable to open file");
+        exit(1);
+    }
+
+    yyparse();
+
+    fclose(f);
     return 0;
 }
