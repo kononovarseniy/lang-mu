@@ -1,4 +1,7 @@
 %{
+#define YY_NO_UNPUT
+#define YY_NO_INPUT
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
