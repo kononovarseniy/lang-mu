@@ -22,6 +22,9 @@ pSTree parsing_result;
 %union
 {
     char *name;
+    char *str_val;
+    char char_val;
+    long int_val;
     pSTree tree;
 }
 
@@ -37,11 +40,11 @@ pSTree parsing_result;
 %token              QUOTE
 
 %token  <name>      NAME
-%token              INT_LITERAL
+%token  <int_val>   INT_LITERAL
 %token              FLOAT_LITERAL
 %token              RAT_LITERAL
-%token              CHAR_LITERAL
-%token              STRING_LITERAL
+%token  <char_val>  CHAR_LITERAL
+%token  <str_val>   STR_LITERAL
 
 %type   <tree>      list
 %type   <tree>      items
@@ -61,6 +64,21 @@ item:   NAME {
             $$ = create_stree();
             $$->type = NODE_NAME;
             $$->name = copystr($1);
+        }
+        | INT_LITERAL {
+            $$ = create_stree();
+            $$->type = NODE_INT;
+            $$->int_val = $1;
+        }
+        | STR_LITERAL {
+            $$ = create_stree();
+            $$->type = NODE_STR;
+            $$->str_val = $1;
+        }
+        | CHAR_LITERAL {
+            $$ = create_stree();
+            $$->type = NODE_CHAR;
+            $$->char_val = $1;
         }
         | list {
             $$ = create_stree();

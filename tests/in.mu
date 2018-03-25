@@ -16,7 +16,31 @@
         *
         /
     )
-    
+    (   numbers
+        123
+        +123
+        0xff // hex 255
+        0b11111111 //bin 255
+        0o17 // oct 15
+        +15
+        -123456
+    )
+    (   strings
+        "Hello, world!!!"
+        "Hello\r\nworld"
+        "string: \"123\""
+        "secret\0string"
+        "beep\a"
+        "tab\ttab"
+        "[\\]: \x5b\X5c\x5D"
+    )
+    (   characters
+        '1'
+        '\"'
+        '\''
+        '\t'
+        '\n'
+    )
     _123
     // 456 /*
     _789//6

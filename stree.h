@@ -5,7 +5,10 @@ enum NodeType
 {
     NODE_NONE,
     NODE_LIST,
-    NODE_NAME
+    NODE_NAME,
+    NODE_INT,
+    NODE_STR,
+    NODE_CHAR
 };
 
 typedef struct STree STree, *pSTree;
@@ -17,7 +20,11 @@ struct STree
     {
         void *data;
         char *name;
+        char *str_val;
         pSTree child;
+
+        long int_val;
+        char char_val;
     };
 };
 

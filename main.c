@@ -15,11 +15,31 @@ void print_tree(pSTree tree, int indent)
     pindent(indent); printf("(\n");
     while (tree != NULL)
     {
-        if (tree->type == NODE_LIST)
-            print_tree(tree->child, indent + 1);
-        else if (tree->type == NODE_NAME)
+        switch (tree->type)
         {
-            pindent(indent + 1); printf("%s\n", tree->name);
+        case NODE_LIST:
+            print_tree(tree->child, indent + 1);
+            break;
+        case NODE_INT:
+            pindent(indent + 1);
+            printf("%ld\n", tree->int_val);
+            break;
+        case NODE_NAME:
+            pindent(indent + 1);
+            printf("%s\n", tree->name);
+            break;
+        case NODE_STR:
+            pindent(indent + 1);
+            printf("\"%s\"\n", tree->str_val);
+            break;
+        case NODE_CHAR:
+            pindent(indent + 1);
+            printf("\'%c\'\n", tree->char_val);
+            break;
+        default:
+            pindent(indent + 1);
+            printf("`Unknown node type`\n");
+            break;
         }
         tree = tree->next;
     }
@@ -37,6 +57,7 @@ int main(int argc, char **argv)
 
     yyparse();
     print_tree(parsing_result, 0);
+
 
     fclose(f);
     return 0;
