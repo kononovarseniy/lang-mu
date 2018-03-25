@@ -1,12 +1,19 @@
 #include "stree.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 pSTree create_stree(void)
 {
-    pSTree res = malloc(sizeof(STree));
+    pSTree res;
+    if ((res = malloc(sizeof(STree))) == NULL)
+    {
+        perror("create_stree: malloc failed");
+        return NULL;
+    }
+
     res->next = NULL;
-    res->child = NULL;
     res->type = NODE_NONE;
+    res->data = NULL;
     return res;
 }
 
@@ -27,20 +34,28 @@ pSTree stree_get_next(pSTree node, int offset)
 
 pSTree stree_get_child(pSTree node, int offset)
 {
-    if (node == NULL) return NULL;
+    if (node == NULL || node->type != NODE_LIST) return NULL;
     return stree_get_next(node->child, offset);
 }
 
 void stree_append(pSTree node, pSTree newNode)
 {
-    if (node == NULL) return;
+    if (node == NULL)
+    {
+        printf("WARNING: stree_append: appending to NULL");
+        return;
+    }
     while (node->next != NULL) node = node->next;
     node->next = newNode;
 }
 
 void stree_append_child(pSTree node, pSTree newNode)
 {
-    if (node == NULL) return;
+    if (node == NULL || node->type != NODE_LIST)
+    {
+        printf("WARNING: stree_append_child: appending to NULL");
+        return;
+    }
     stree_append(node->child, newNode);
 }
 
@@ -57,6 +72,6 @@ int stree_count(pSTree node)
 
 int stree_count_children(pSTree node)
 {
-    if (node == NULL) return 0;
+    if (node == NULL || node->type != NODE_LIST) return 0;
     return stree_count(node->child);
 }

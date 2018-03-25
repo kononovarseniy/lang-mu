@@ -49,6 +49,14 @@
 		<Unit filename="mu.scanner.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="stree.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="stree.h" />
+		<Unit filename="strutils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="strutils.h" />
 		<Extensions>
 			<envvars />
 			<code_completion />

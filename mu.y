@@ -1,8 +1,13 @@
+%code requires {
+#include "stree.h"
+}
+
 %{
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "stree.h"
 #include "strutils.h"
 
 // Prototype of yylex implemented in auto-generated "mu.scanner.c"
@@ -10,14 +15,17 @@ int yylex(void);
 
 int yyerror(char *s);
 
+pSTree parsing_result;
+
 %}
 
 %union
 {
     char *name;
+    pSTree tree;
 }
 
-%start  input 
+%start  input
 
 %token              OPEN_PAREN
 %token              CLOSE_PAREN
@@ -35,31 +43,36 @@ int yyerror(char *s);
 %token              CHAR_LITERAL
 %token              STRING_LITERAL
 
-%type   <name>      exp
-%type   <name>      items
+%type   <tree>      list
+%type   <tree>      items
+%type   <tree>      item
 
 %%
 
-input:  items	{ printf("Result: %s\n", $1); free($1); }
+input:  items	{ printf("PARSER: success!!!\n"); parsing_result = $1; }
         ;
 
-exp:    NAME    { $$ = $1; }
-        | OPEN_PAREN items CLOSE_PAREN	{
-            char *s1 = concatstr("(", $items); free($items);
-            $$ = concatstr(s1, ")"); free(s1);
+list:   OPEN_PAREN items CLOSE_PAREN    {
+            $$ = $items;
         }
         ;
-items:  { $$ = copystr(""); }
-        | exp items {
-            if (strlen($2) != 0)
-            {
-                char *s1 = concatstr($1, ", "); free($1);
-                $$ = concatstr(s1, $2); free(s1); free($2);
-            }
-            else
-            {
-                $$ = $1; free($2);
-            }
+
+item:   NAME {
+            $$ = create_stree();
+            $$->type = NODE_NAME;
+            $$->name = copystr($1);
+        }
+        | list {
+            $$ = create_stree();
+            $$->type = NODE_LIST;
+            $$->child = $list;
+        }
+        ;
+
+items:  { $$ = NULL; }
+        | item items {
+            stree_append($1, $2);
+            $$ = $1;
         }
         ;
 
@@ -69,7 +82,7 @@ int yyerror(char *s)
 {
     extern int yylineno;	// defined and maintained in lex.c
     extern char *yytext;	// defined and maintained in lex.c
- 
+
     printf("ERROR: %s at symbol \"%s\" on line %d\n", s, yytext, yylineno);
     exit(1);
 }

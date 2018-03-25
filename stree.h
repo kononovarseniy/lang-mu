@@ -12,12 +12,12 @@ typedef struct STree STree, *pSTree;
 struct STree
 {
     pSTree next;
-    pSTree child;
     enum NodeType type;
     union
     {
         void *data;
         char *name;
+        pSTree child;
     };
 };
 

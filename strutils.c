@@ -1,7 +1,7 @@
 #include "strutils.h"
 
+#include <stdlib.h>
 #include <string.h>
-#include <memory.h>
 
 char *copystr(const char *s)
 {
