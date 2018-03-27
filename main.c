@@ -2,6 +2,8 @@
 #include <stdio.h>
 
 #include "parser.h"
+#include "exec.h"
+#include "exec_internal.h"//TODO: remove
 
 void pindent(int i)
 {
@@ -10,6 +12,7 @@ void pindent(int i)
         printf("    ");
     }
 }
+
 void print_tree(pSTree tree, int indent)
 {
     pindent(indent); printf("(\n");
@@ -49,16 +52,27 @@ void print_tree(pSTree tree, int indent)
 int main(int argc, char **argv)
 {
     FILE *f;
-    if ((f = freopen("tests/in.mu", "r", stdin)) == NULL)
+    if ((f = freopen("tests/hello-world.mu", "r", stdin)) == NULL)
     {
         perror("Unable to open file");
         exit(1);
     }
 
     yyparse();
-    print_tree(parsing_result, 0);
-
 
     fclose(f);
+
+    print_tree(parsing_result, 0);
+
+    pExecutor exec = create_executor();
+    pContext context = create_context();
+    exec_init(exec, context);
+
+    int expr = exec_load_tree(exec, parsing_result);
+    int len;
+    int *list = get_list(exec, expr, &len);
+    exec_eval(exec, list[0], context);
+    list = get_list(exec, list[0], &len);
+
     return 0;
 }

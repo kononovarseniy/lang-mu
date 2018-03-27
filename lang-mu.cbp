@@ -39,9 +39,29 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="context.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="context.h" />
+		<Unit filename="exec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="exec.h" />
+		<Unit filename="exec_builtin.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="exec_builtin.h" />
+		<Unit filename="exec_internal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="exec_internal.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="map.h" />
 		<Unit filename="mu.parser.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -49,6 +69,7 @@
 		<Unit filename="mu.scanner.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="parser.h" />
 		<Unit filename="stree.c">
 			<Option compilerVar="CC" />
 		</Unit>

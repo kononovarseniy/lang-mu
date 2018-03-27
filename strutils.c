@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 char *copystr(const char *s)
 {
@@ -18,4 +19,13 @@ char *concatstr(const char *a, const char *b)
     strcpy(res, a);
     strcpy(res + len1, b);
     return res;
+}
+
+void strtolower(char *s)
+{
+    while (*s != '\0')
+    {
+        *s = tolower(*s);
+        s++;
+    }
 }

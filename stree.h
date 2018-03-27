@@ -37,4 +37,4 @@ void stree_append_child(pSTree node, pSTree newNode);
 int stree_count(pSTree node);
 int stree_count_children(pSTree node);
 
-#endif // SOURCETREE_H_INCLUDED
+#endif // STREE_H_INCLUDED
