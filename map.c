@@ -2,8 +2,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <memory.h>
 
-pMap create_map(void)
+pMap create_map(size_t value_size)
 {
     pMap res = malloc(sizeof(Map));
     if (res == NULL)
@@ -12,6 +13,7 @@ pMap create_map(void)
         return NULL;
     }
     res->count = 0;
+    res->value_size = value_size;
     res->keys = NULL;
     res->values = NULL;
 
@@ -23,32 +25,33 @@ void free_map(pMap map)
     free(map->values);
 }
 
-int map_set(pMap map, int key, void *value)
+int map_set(pMap map, size_t key, void *value)
 {
     for (int i = 0; i < map->count; i++)
     {
         if (map->keys[i] == key)
         {
-            map->values[i] = value;
+            memcpy(map->values + i * map->value_size, value, map->value_size);
             return MAP_EXISTS;
         }
     }
-    int count = map->count + 1;
-    int *keys = realloc(map->keys, count * sizeof(int));
+    size_t index = map->count;
+    size_t count = index + 1;
+    size_t *keys = realloc(map->keys, count * sizeof(size_t));
     if (keys == NULL)
     {
         perror("map_set: realloc failed");
         return MAP_FAILED;
     }
 
-    void **values = realloc(map->values, count * sizeof(void*));
+    void *values = realloc(map->values, count * map->value_size);
     if (values == NULL)
     {
         perror("map_set: realloc failed");
         return MAP_FAILED;
     }
-    keys[map->count] = key;
-    values[map->count] = value;
+    keys[index] = key;
+    memcpy(values + index * map->value_size, value, map->value_size);
 
     map->count = count;
     map->keys = keys;
@@ -56,13 +59,13 @@ int map_set(pMap map, int key, void *value)
     return MAP_SUCCESS;
 }
 
-int map_get(pMap map, int key, void **value)
+int map_get(pMap map, size_t key, void *value)
 {
     for (int i = 0; i < map->count; i++)
     {
         if (map->keys[i] == key)
         {
-            *value = map->values[i];
+            memcpy(value, map->values + i * map->value_size, map->value_size);
             return MAP_SUCCESS;
         }
     }

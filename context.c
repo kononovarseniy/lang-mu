@@ -2,30 +2,32 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "log.h"
 
 pContext create_context(void)
 {
-    pMap map = create_map();
+    pMap map = create_map(sizeof(Expr));
     if (map == NULL)
     {
-        printf("create_context: create_map failed");
+        log("create_context: create_map failed");
         return NULL;
     }
+
     pContext res = malloc(sizeof(Context));
     if (res == NULL)
     {
         perror("create_context: malloc failed");
         return NULL;
     }
+
     res->base = NULL;
     res->bindings = map;
-
     return res;
 }
 
 void free_context(pContext context)
 {
-    free(context->bindings);
+    free_map(context->bindings);
     free(context);
 }
 
@@ -41,12 +43,12 @@ pContext context_inherit(pContext base)
     return context;
 }
 
-int context_bind(pContext context, int key, void *value)
+int context_bind(pContext context, size_t key, Expr value)
 {
-    return map_set(context->bindings, key, value);
+    return map_set(context->bindings, key, &value);
 }
 
-int context_get(pContext context, int key, void **value)
+int context_get(pContext context, size_t key, Expr *value)
 {
     while (context != NULL)
     {

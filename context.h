@@ -4,6 +4,10 @@
 #include "map.h"
 
 typedef struct Context Context, *pContext;
+
+// exec.h uses type `Context` so it must be included here
+#include "exec.h"
+
 struct Context
 {
     pContext base;
@@ -14,7 +18,7 @@ pContext create_context(void);
 void free_context(pContext context);
 
 pContext context_inherit(pContext base);
-int context_bind(pContext context, int key, void *value);
-int context_get(pContext context, int key, void **value);
+int context_bind(pContext context, size_t key, Expr expr);
+int context_get(pContext context, size_t key, Expr *expr);
 
 #endif // CONTEXT_H_INCLUDED

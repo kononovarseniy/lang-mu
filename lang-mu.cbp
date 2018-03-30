@@ -51,10 +51,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="exec_builtin.h" />
-		<Unit filename="exec_internal.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="exec_internal.h" />
+		<Unit filename="log.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>

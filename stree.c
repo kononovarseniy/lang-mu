@@ -1,6 +1,7 @@
 #include "stree.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "log.h"
 
 pSTree create_stree(void)
 {
@@ -42,7 +43,7 @@ void stree_append(pSTree node, pSTree newNode)
 {
     if (node == NULL)
     {
-        printf("WARNING: stree_append: appending to NULL");
+        log("WARNING: stree_append: appending to NULL");
         return;
     }
     while (node->next != NULL) node = node->next;
@@ -53,7 +54,7 @@ void stree_append_child(pSTree node, pSTree newNode)
 {
     if (node == NULL || node->type != NODE_LIST)
     {
-        printf("WARNING: stree_append_child: appending to NULL");
+        log("WARNING: stree_append_child: appending to NULL");
         return;
     }
     stree_append(node->child, newNode);

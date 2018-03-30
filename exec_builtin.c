@@ -2,35 +2,34 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "log.h"
 
 BUILTIN_FUNC(def)
 {
     /*
         (def (a 1) (c a))
     */
-    pTypedValue last;
+    Expr last;
     for (int i = 0; i < argc; i++)
     {
         int len;
-        int *list = get_list(exec, args[i], &len);
+        Expr *list = get_list(exec, args[i], &len);
         if (list == NULL || len != 2)
         {
-            printf("def: wrong arguments syntax");
+            log("def: wrong arguments syntax");
             exit(1);
         }
-        int atom = list[0];
-        if (!is_atom(atom))
+        Expr atom = list[0];
+        if (atom.type != VT_ATOM)
         {
-            printf("def: wrong arguments syntax");
+            log("def: wrong arguments syntax");
             exit(1);
         }
-        pTypedValue val = exec_eval(exec, list[1], callContext);
-        context_bind(callContext, atom, val);
-        typed_value_link(val);
+        Expr val = exec_eval(exec, callContext, list[1]);
+        context_bind(callContext, atom.val_atom, val);
         free(list);
         last = val;
     }
-    typed_value_link(last);
     return last;
 }
 
@@ -38,10 +37,9 @@ BUILTIN_FUNC(print)
 {
     for (int i = 0; i < argc; i++)
     {
-        if (is_atom(args[i]))
+        if (args[i].type == VT_ATOM)
         {
-            int ind = atom_ind(args[i]);
-            printf("%s", exec->atoms[ind]);
+            printf("%s", exec->atoms[args[i].val_atom]);
         }
         else
         {
@@ -49,15 +47,6 @@ BUILTIN_FUNC(print)
         }
         if (i < argc - 1) printf(" ");
     }
-    pTypedValue val = create_typed_value();
-    if (val == NULL)
-    {
-        printf("print: create_typed_value failed");
-        exit(1);
-    }
-    val->type = VT_EXPR;
-    val->expr = exec->t;
-    typed_value_link(val);
 
-    return val;
+    return exec->t;
 }

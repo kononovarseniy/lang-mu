@@ -1,7 +1,7 @@
 #ifndef EXEC_BUILTIN_H_INCLUDED
 #define EXEC_BUILTIN_H_INCLUDED
 
-#include "exec_internal.h"
+#include "exec.h"
 
 BUILTIN_FUNC(def);
 BUILTIN_FUNC(print);

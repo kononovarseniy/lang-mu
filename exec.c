@@ -1,4 +1,4 @@
-#include "exec_internal.h"
+#include "exec.h"
 #include "exec_builtin.h"
 
 #include <stdlib.h>
@@ -6,34 +6,56 @@
 #include <string.h>
 
 #include "strutils.h"
+#include "log.h"
+
+Expr expr_none()
+{
+    Expr res;
+    res.type = VT_NONE;
+    return res;
+}
 
 pExecutor create_executor(void)
 {
+    char **atoms = malloc(MAX_ATOMS * sizeof(char*));
+    if (atoms == NULL)
+    {
+        perror("create_executor: `atoms` allocation failed");
+        return NULL;
+    }
+
+    Expr *cars = malloc(MAX_PAIRS * sizeof(Expr));
+    if (cars == NULL)
+    {
+        perror("create_executor: `cars` allocation failed");
+        free(atoms);
+        return NULL;
+    }
+
+    Expr *cdrs = malloc(MAX_PAIRS * sizeof(Expr));
+    if (cdrs == NULL)
+    {
+        perror("create_executor: `cdrs` allocation failed");
+        free(atoms);
+        free(cdrs);
+        return NULL;
+    }
+
     pExecutor res = malloc(sizeof(Executor));
     if (res == NULL)
     {
-        perror("create_executor: malloc failed");
-        return NULL;
-    }
-
-    res->atoms = malloc(MAX_ATOMS * sizeof(char*));
-    if (res->atoms == NULL)
-    {
-        perror("create_executor: malloc failed");
-        free(res);
-        return NULL;
-    }
-
-    res->pairs = malloc(MAX_PAIRS * sizeof(Pair));
-    if (res->pairs == NULL)
-    {
-        perror("create_executor: malloc failed");
-        free(res);
+        perror("create_executor: memory allocation failed");
+        free(atoms);
+        free(cars);
+        free(cdrs);
         return NULL;
     }
 
     res->atomsCount = 0;
     res->pairsCount = 0;
+    res->atoms = atoms;
+    res->cars = cars;
+    res->cdrs = cdrs;
     return res;
 }
 void free_executor(pExecutor exec)
@@ -41,164 +63,300 @@ void free_executor(pExecutor exec)
     for (int i = 0; i < exec->atomsCount; i++)
         free((exec->atoms[i]));
     free(exec->atoms);
-    free(exec->pairs);
+    free(exec->cars);
+    free(exec->cdrs);
     free(exec);
 }
 
-void register_function(pExecutor exec, pContext context, char *name, BuiltinFunction func)
+Expr register_atom(pExecutor exec, char *name)
 {
-    int atom = add_atom(exec, name);
+    size_t atom = add_atom(exec, name);
+    if (atom == EXPR_ERROR)
+    {
+        log("register_atom: add_atom failed");
+        exit(1);
+    }
+
+    Expr res;
+    res.type = VT_ATOM;
+    res.val_atom = atom;
+    return res;
+}
+
+Expr register_function(pExecutor exec, pContext context, char *name, BuiltinFunction func)
+{
+    size_t atom = add_atom(exec, name);
 
     pFunction funcval = create_function();
     if (funcval == NULL)
     {
-        printf("register_function: create_function failed");
+        log("register_function: create_function failed");
         exit(1);
     }
-    funcval->context = context;
     funcval->type = FT_BUILTIN;
+    funcval->context = context;
     funcval->builtin = func;
 
-    pTypedValue val = create_typed_value();
-    if (val == NULL)
-    {
-        printf("register_function: create_typed_value failed");
-        exit(1);
-    }
-    val->type = VT_FUNC;
-    val->func = funcval;
+    Expr expr;
+    expr.type = VT_FUNC;
+    expr.val_func = funcval;
 
-    if (context_bind(context, atom, val) == MAP_FAILED)
+    if (context_bind(context, atom, expr) == MAP_FAILED)
     {
-        printf("register_function: context_bind failed");
+        log("register_function: context_bind failed");
         exit(1);
     }
-    typed_value_link(val);
+
+    return expr;
 }
 
 void exec_init(pExecutor exec, pContext context)
 {
-    exec->nil = add_atom(exec, "nil");
-    exec->t = add_atom(exec, "t");
+    // Create minimal set of atoms
+    exec->nil = register_atom(exec, "nil");
+    exec->t = register_atom(exec, "t");
 
+    // Register built-in function
     register_function(exec, context, "def", def);
     register_function(exec, context, "print", print);
 }
 
-int add_or_get_atom(pExecutor exec, char *name)
+void exec_cleanup(pExecutor exec)
 {
-    name = strdup(name);
-    strtolower(name);
-    for (int i = 0; i < exec->atomsCount; i++)
+    // TODO: implement exec_cleanup
+}
+
+Expr load_atom(pExecutor exec, char *name)
+{
+    char *lower = strdup(name);
+    strtolower(lower);
+    for (size_t i = 0; i < exec->atomsCount; i++)
     {
-        if (strcmp(name, exec->atoms[i]) == 0)
+        if (strcmp(lower, exec->atoms[i]) == 0)
         {
-            free(name);
-            return i;
+            free(lower);
+
+            Expr res;
+            res.type = VT_ATOM;
+            res.val_atom = i;
+            return res;
         }
     }
-    int res = add_atom(exec, name);
-    free(name);
+    size_t atom = add_atom(exec, lower);
+    free(lower);
+
+    Expr res;
+    res.type = VT_ATOM;
+    res.val_atom = atom;
     return res;
 }
 
-int exec_load_tree(pExecutor exec, pSTree tree)
+Expr load_item(pExecutor exec, pSTree item)
+{
+    switch (item->type)
+    {
+    case NODE_LIST:
+        return exec_load_tree(exec, item->child);
+    case NODE_NAME:
+        return load_atom(exec, item->name);
+    // TODO: load other types of nodes
+    default:
+        log("load_item: unknown node type");
+        return expr_none();
+    }
+}
+
+Expr exec_load_tree(pExecutor exec, pSTree tree)
 {
     if (tree == NULL) return exec->nil;
 
     // Load item
-    int item = EXPR_ERROR;
-    switch (tree->type)
+    Expr item = load_item(exec, tree);
+    if (item.type == VT_NONE)
     {
-    case NODE_LIST:
-        item = exec_load_tree(exec, tree->child);
-        break;
-    case NODE_NAME:
-        item = add_or_get_atom(exec, tree->name);
-        break;
-    default:
-        printf("exec_load_tree: unknown node type");
-        break;
-    }
-    if (item == EXPR_ERROR)
-    {
-        printf("exec_load_tree: subexpression loading failed");
-        return EXPR_ERROR;
+        log("exec_load_tree: item loading failed");
+        return expr_none();
     }
 
     // Load tail
-    int tail = exec_load_tree(exec, tree->next);
-    if (tail == EXPR_ERROR)
+    Expr tail = exec_load_tree(exec, tree->next);
+    if (tail.type == VT_NONE)
     {
-        printf("exec_load_tree: tail loading failed");
-        return EXPR_ERROR;
+        log("exec_load_tree: tail loading failed");
+        return expr_none();
     }
 
     // Make pair
-    int pair = add_pair(exec);
+    size_t pair = add_pair(exec);
     if (pair == EXPR_ERROR)
     {
-        printf("exec_load_tree: add_pair failed");
-        return EXPR_ERROR;
+        log("exec_load_tree: add_pair failed");
+        return expr_none();
     }
 
-    pPair p = exec->pairs + pair_ind(pair);
-    p->left = item;
-    p->right = tail;
+    exec->cars[pair] = item;
+    exec->cdrs[pair] = tail;
 
-    return pair;
+    Expr res;
+    res.type = VT_PAIR;
+    res.val_pair = pair;
+    return res;
 }
 
-pTypedValue exec_function(pExecutor exec, pContext callContext, pFunction func, int args)
+Expr exec_function(pExecutor exec, pContext callContext, pFunction func, Expr *args, int argc)
 {
     if (func->type == FT_BUILTIN)
     {
-        int argc;
-        int *args_arr = get_list(exec, args, &argc);
-        if (args_arr == NULL)
-        {
-            printf("exec_function: get_list failed");
-            exit(1);
-        }
-        pTypedValue res = func->builtin(exec, func->context, callContext, args_arr, argc);
-        free(args_arr);
+        Expr res = func->builtin(exec, func->context, callContext, args, argc);
         return res;
     }
     else
     {
-        printf("exec_function: invalid_function");
+        log("exec_function: invalid_function");
         // TODO: print debug info
         exit(1);
     }
 }
 
-pTypedValue exec_eval(pExecutor exec, int expr, pContext context)
+Expr exec_eval(pExecutor exec, pContext context, Expr expr)
 {
-    // (foo 1 2 3 (+ 4 5))
-    pPair name_args = get_pair(exec, expr);
-    if (name_args == NULL) // if expr is atom
+    int len;
+    Expr *list = get_list(exec, expr, &len);
+    if (len == 0) // expr is an atom
     {
-        pTypedValue val;
-        if (context_get(context, expr, (void **)&val) == MAP_FAILED)
+        Expr value;
+        if (context_get(context, expr.val_atom, &value) == MAP_FAILED)
         {
-            printf("exec_eval: atom \"%s\" not binded", exec->atoms[expr]);
+            logf("eval: atom \"%s\" not binded", exec->atoms[expr.val_atom]);
             exit(1);
         }
-        typed_value_link(val);
-        return val;
+        return value;
     }
-    int func = name_args->left;
-    int args = name_args->right;
-
-    pTypedValue head_val = exec_eval(exec, func, context);
-    if (head_val->type != VT_FUNC)
+    Expr func = exec_eval(exec, context, list[0]);
+    if (func.type != VT_FUNC)
     {
-        printf("exec_eval: list head not a function");
+        log("eval: list head not a function");
         // TODO: print debug information
         exit(1);
     }
+    Expr result = exec_function(exec, context, func.val_func, list + 1, len - 1);
+    free(list);
+    return result;
+}
 
-    pTypedValue res = exec_function(exec, context, head_val->func, args);
+Expr exec_eval_all(pExecutor exec, pContext context, Expr expr)
+{
+    int len;
+    Expr *list = get_list(exec, expr, &len);
 
+    Expr res;
+    for (int i = 0; i < len; i++)
+    {
+        res = exec_eval(exec, context, list[i]);
+    }
     return res;
+}
+
+size_t add_atom(pExecutor exec, char *name)
+{
+    if (exec->atomsCount == MAX_ATOMS)
+    {
+        log("add_atom: limit exceeded");
+        return EXPR_ERROR;
+    }
+    char *copy = strdup(name);
+    if (copy == NULL)
+    {
+        perror("add_atom: strdup failed");
+        return EXPR_ERROR;
+    }
+    strtolower(copy);
+    exec->atoms[exec->atomsCount] = copy;
+
+    size_t res = exec->atomsCount;
+    exec->atomsCount++;
+    return res;
+}
+
+size_t add_pair(pExecutor exec)
+{
+    if (exec->pairsCount == MAX_PAIRS)
+    {
+        log("add_pair: limit exceeded");
+        return EXPR_ERROR;
+    }
+
+    int res = exec->pairsCount;
+    exec->pairsCount++;
+    return res;
+}
+
+int get_len(pExecutor exec, Expr expr)
+{
+    int len = 0;
+    Expr current = expr;
+    while (current.type == VT_PAIR)
+    {
+        len++;
+        current = exec->cdrs[current.val_pair];
+    }
+    return len;
+}
+
+Expr *get_items(pExecutor exec, Expr expr, int cnt)
+{
+    Expr *res = malloc(cnt * sizeof(Expr));
+    if (res == NULL)
+    {
+        perror("get_items: malloc failed");
+        return NULL;
+    }
+    Expr current = expr;
+    int i = 0;
+    while (i < cnt)
+    {
+        if (current.type != VT_PAIR)
+        {
+            log("get_items: len is out of range");
+            free(res);
+            return NULL;
+        }
+        res[i] = exec->cars[current.val_pair];
+        current = exec->cdrs[current.val_pair];
+        i++;
+    }
+    return res;
+}
+
+Expr *get_list(pExecutor exec, Expr expr, int *len)
+{
+    int l = get_len(exec, expr);
+    Expr *arr = get_items(exec, expr, l);
+    *len = l;
+    return arr;
+}
+
+pFunction create_function()
+{
+    pFunction res = malloc(sizeof(Function));
+    if (res == NULL)
+    {
+        perror("create_function: malloc failed");
+        return NULL;
+    }
+    res->type = FT_NONE;
+    res->context = NULL;
+    return res;
+}
+
+void free_function(pFunction func)
+{
+    switch (func->type)
+    {
+        case FT_BUILTIN: break;
+        default:
+            log("free_function: unknown function type. Unable to free");
+            break;
+    }
+    free(func);
 }
