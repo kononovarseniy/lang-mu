@@ -40,7 +40,7 @@ struct Expr
         size_t val_pair;
         size_t val_atom;
         pFunction val_func;
-        int val_int;
+        long val_int;
         char val_char;
         char *val_str;
 
@@ -75,6 +75,7 @@ struct Executor
 
     Expr nil;
     Expr t;
+    Expr quote;
 };
 
 

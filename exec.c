@@ -115,10 +115,15 @@ void exec_init(pExecutor exec, pContext context)
     // Create minimal set of atoms
     exec->nil = register_atom(exec, "nil");
     exec->t = register_atom(exec, "t");
+    exec->quote = register_atom(exec, "quote");
 
     // Register built-in function
     register_function(exec, context, "def", def);
     register_function(exec, context, "print", print);
+    register_function(exec, context, "quote", quote);
+    Expr plus_func = register_function(exec, context, "plus", plus);
+
+    context_bind(context, add_atom(exec, "+"), plus_func);
 }
 
 void exec_cleanup(pExecutor exec)
@@ -126,28 +131,36 @@ void exec_cleanup(pExecutor exec)
     // TODO: implement exec_cleanup
 }
 
-Expr load_atom(pExecutor exec, char *name)
+Expr load_atom(pExecutor exec, pSTree item)
 {
-    char *lower = strdup(name);
-    strtolower(lower);
-    for (size_t i = 0; i < exec->atomsCount; i++)
-    {
-        if (strcmp(lower, exec->atoms[i]) == 0)
-        {
-            free(lower);
-
-            Expr res;
-            res.type = VT_ATOM;
-            res.val_atom = i;
-            return res;
-        }
-    }
-    size_t atom = add_atom(exec, lower);
-    free(lower);
-
     Expr res;
     res.type = VT_ATOM;
-    res.val_atom = atom;
+    res.val_atom = add_atom(exec, item->name);
+    return res;
+}
+
+Expr load_int(pExecutor exec, pSTree item)
+{
+    Expr res;
+    res.type = VT_INT;
+    res.val_int = item->int_val;
+    return res;
+}
+
+Expr load_char(pExecutor exec, pSTree item)
+{
+    Expr res;
+    res.type = VT_CHAR;
+    res.val_char = item->char_val;
+    return res;
+}
+
+Expr load_string(pExecutor exec, pSTree item)
+{
+    // TODO: register string somewhere to be able to free it
+    Expr res;
+    res.type = VT_STRING;
+    res.val_str = item->str_val;
     return res;
 }
 
@@ -158,8 +171,13 @@ Expr load_item(pExecutor exec, pSTree item)
     case NODE_LIST:
         return exec_load_tree(exec, item->child);
     case NODE_NAME:
-        return load_atom(exec, item->name);
-    // TODO: load other types of nodes
+        return load_atom(exec, item);
+    case NODE_INT:
+        return load_int(exec, item);
+    case NODE_CHAR:
+        return load_char(exec, item);
+    case NODE_STR:
+        return load_string(exec, item);
     default:
         log("load_item: unknown node type");
         return expr_none();
@@ -220,9 +238,7 @@ Expr exec_function(pExecutor exec, pContext callContext, pFunction func, Expr *a
 
 Expr exec_eval(pExecutor exec, pContext context, Expr expr)
 {
-    int len;
-    Expr *list = get_list(exec, expr, &len);
-    if (len == 0) // expr is an atom
+    if (expr.type == VT_ATOM)
     {
         Expr value;
         if (context_get(context, expr.val_atom, &value) == MAP_FAILED)
@@ -232,6 +248,14 @@ Expr exec_eval(pExecutor exec, pContext context, Expr expr)
         }
         return value;
     }
+    else if (expr.type != VT_PAIR)
+    {
+        return expr;
+    }
+
+    int len;
+    Expr *list = get_list(exec, expr, &len);
+
     Expr func = exec_eval(exec, context, list[0]);
     if (func.type != VT_FUNC)
     {
@@ -259,11 +283,7 @@ Expr exec_eval_all(pExecutor exec, pContext context, Expr expr)
 
 size_t add_atom(pExecutor exec, char *name)
 {
-    if (exec->atomsCount == MAX_ATOMS)
-    {
-        log("add_atom: limit exceeded");
-        return EXPR_ERROR;
-    }
+    // Create name copy
     char *copy = strdup(name);
     if (copy == NULL)
     {
@@ -271,6 +291,21 @@ size_t add_atom(pExecutor exec, char *name)
         return EXPR_ERROR;
     }
     strtolower(copy);
+    // Search for existing atom with such name
+    for (size_t i = 0; i < exec->atomsCount; i++)
+    {
+        if (strcmp(copy, exec->atoms[i]) == 0)
+        {
+            free(copy);
+            return i;
+        }
+    }
+    // Atom not exists. Create it!
+    if (exec->atomsCount == MAX_ATOMS)
+    {
+        log("add_atom: limit exceeded");
+        return EXPR_ERROR;
+    }
     exec->atoms[exec->atomsCount] = copy;
 
     size_t res = exec->atomsCount;

@@ -3,6 +3,7 @@
 
 #include "parser.h"
 #include "exec.h"
+#include "print.h"
 
 pSTree parse_file(char *name)
 {
@@ -19,56 +20,6 @@ pSTree parse_file(char *name)
     return parsing_result;
 }
 
-void print_indent(int i)
-{
-    while (i-- > 0)
-    {
-        printf("    ");
-    }
-}
-
-void print_code_tree_impl(pSTree tree, int indent)
-{
-    print_indent(indent); printf("(\n");
-    while (tree != NULL)
-    {
-        switch (tree->type)
-        {
-        case NODE_LIST:
-            print_code_tree_impl(tree->child, indent + 1);
-            break;
-        case NODE_INT:
-            print_indent(indent + 1);
-            printf("%ld\n", tree->int_val);
-            break;
-        case NODE_NAME:
-            print_indent(indent + 1);
-            printf("%s\n", tree->name);
-            break;
-        case NODE_STR:
-            print_indent(indent + 1);
-            printf("\"%s\"\n", tree->str_val);
-            break;
-        case NODE_CHAR:
-            print_indent(indent + 1);
-            printf("\'%c\'\n", tree->char_val);
-            break;
-        default:
-            print_indent(indent + 1);
-            printf("`Unknown node type`\n");
-            break;
-        }
-        tree = tree->next;
-    }
-    print_indent(indent); printf(")\n");
-
-}
-
-void print_code_tree(pSTree tree)
-{
-    print_code_tree_impl(tree, 0);
-}
-
 Expr execute_program(pSTree code_tree)
 {
     pExecutor exec = create_executor();
@@ -76,7 +27,21 @@ Expr execute_program(pSTree code_tree)
     exec_init(exec, context);
 
     Expr expr = exec_load_tree(exec, parsing_result);
+
+    printf("\n====================\n");
+    printf("Code loaded:");
+    printf("\n====================\n");
+    print_expression(stdout, exec, expr, PF_DEFAULT, 0);
+
+    printf("\n====================\n");
+    printf("Program output:");
+    printf("\n====================\n");
     Expr result = exec_eval_all(exec, context, expr);
+
+    printf("\n====================\n");
+    printf("Program returned:");
+    printf("\n====================\n");
+    print_expression(stdout, exec, result, PF_DEFAULT, 0);
 
     exec_cleanup(exec);
     free_executor(exec);
@@ -85,19 +50,12 @@ Expr execute_program(pSTree code_tree)
     return result;
 }
 
-void print_expression(Expr value)
-{
-
-}
-
 int main(int argc, char **argv)
 {
     pSTree code_tree = parse_file("tests/hello-world.mu");
 
-    print_code_tree(code_tree);
-    Expr result = execute_program(code_tree);
-
-    print_expression(result);
+    //print_code_tree(code_tree);
+    execute_program(code_tree);
 
     return 0;
 }

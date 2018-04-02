@@ -48,6 +48,7 @@ pSTree parsing_result;
 
 %type   <tree>      list
 %type   <tree>      items
+%type   <tree>      quoted
 %type   <tree>      item
 
 %%
@@ -84,6 +85,17 @@ item:   NAME {
             $$ = create_stree();
             $$->type = NODE_LIST;
             $$->child = $list;
+        }
+        | quoted
+        ;
+
+quoted: QUOTE item {
+            $$ = create_stree();
+            $$->type = NODE_LIST;
+            $$->child = create_stree();
+            $$->child->type = NODE_NAME;
+            $$->child->name = copystr("quote");
+            $$->child->next = $item;
         }
         ;
 

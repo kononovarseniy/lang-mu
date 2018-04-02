@@ -46,7 +46,9 @@ bin_int     (?i:"0b"{bin_digit}+)
 str_char    ([^"\n\\]|"\\"[^\n])
 string      "\""{str_char}*"\""
 
-char        "'"{str_char}"'"
+char        "\'"{str_char}"\'"
+
+quote       "'"
 
 %x slcomment mlcomment
 
@@ -80,6 +82,8 @@ char        "'"{str_char}"'"
         free(str);
         return CHAR_LITERAL;
     }
+    
+{quote}     { return QUOTE; }
 
 {string}    { yylval.str_val = unescape_string(yytext + 1, yyleng - 2); return STR_LITERAL; }
 
@@ -132,67 +136,6 @@ char        "'"{str_char}"'"
 .           { scanner_error("Unexpected character"); exit(1); }
 
 %%
-
-int hextodec(char ch)
-{
-    if (ch >= '0' && ch <= '9') return ch - '0';
-    if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
-    if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
-    return -1;
-}
-
-char *unescape_string(char *str, int len)
-{
-    char *res = malloc((len + 1) * sizeof(char));
-    if (res == NULL)
-    {
-        perror("SCANNER unescape_string: malloc failed");
-        exit(1);
-    }
-    int pos = 0;
-    int i = 0 ;
-    while (i < len)
-    {
-        char c = str[i++];
-        if (c != '\\')
-            res[pos++] = c;
-        else
-        {
-            c = str[i++];
-            switch (tolower(c))
-            {
-            case '\'': res[pos++] = '\''; break;
-            case '\"': res[pos++] = '\"'; break;
-            case '\\': res[pos++] = '\\'; break;
-            case '0': res[pos++] = '\0'; break;
-            case 'a': res[pos++] = '\a'; break;
-            case 'b': res[pos++] = '\b'; break;
-            case 'f': res[pos++] = '\f'; break;
-            case 'n': res[pos++] = '\n'; break;
-            case 'r': res[pos++] = '\r'; break;
-            case 't': res[pos++] = '\t'; break;
-            case 'v': res[pos++] = '\v'; break;
-            case 'x': 
-                {
-                    char d1, d2;
-                    if (len - i < 2 ||
-                        (d1 = hextodec(str[i++])) == -1 ||
-                        (d2 = hextodec(str[i++])) == -1)
-                    {
-                        scanner_error("Unrecognized escape sequence \\xnn");
-                    }
-                    res[pos++] = d1 * 16 + d2;
-                }
-                break;
-            default:
-                scanner_error("Unrecognized escape sequence \\%c", c);
-                break;
-            }
-        }
-    }
-    res[pos] = '\0';
-    return res;
-}
 
 void scanner_error(const char *format, ...)
 {
