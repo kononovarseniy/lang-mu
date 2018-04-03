@@ -96,6 +96,7 @@ Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFun
     funcval->type = FT_BUILTIN;
     funcval->context = context;
     funcval->builtin = func;
+    context_link(context);
 
     Expr expr;
     expr.type = VT_FUNC;
