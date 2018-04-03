@@ -6,33 +6,26 @@
 
 #include "print.h"
 
-BUILTIN_FUNC(def)
+BUILTIN_FUNC(set)
 {
     /*
-        (def (a 1) (c a))
+        (set a 1)
     */
-    Expr last;
-    for (int i = 0; i < argc; i++)
+    if (argc != 2)
     {
-        int len;
-        Expr *list = get_list(exec, args[i], &len);
-        if (list == NULL || len != 2)
-        {
-            log("def: wrong arguments syntax");
-            exit(1);
-        }
-        Expr atom = list[0];
-        if (atom.type != VT_ATOM)
-        {
-            log("def: wrong arguments syntax");
-            exit(1);
-        }
-        Expr val = exec_eval(exec, callContext, list[1]);
-        context_bind(callContext, atom.val_atom, val);
-        free(list);
-        last = val;
+        log("set: wrong arguments syntax");
+        exit(1);
     }
-    return last;
+    Expr atom = args[0];
+    if (atom.type != VT_ATOM)
+    {
+        log("set: wrong arguments syntax");
+        exit(1);
+    }
+    Expr val = exec_eval(exec, callContext, args[1]);
+    context_bind(callContext, atom.val_atom, val);
+
+    return val;
 }
 
 BUILTIN_FUNC(print)
@@ -41,6 +34,18 @@ BUILTIN_FUNC(print)
     {
         Expr value = exec_eval(exec, callContext, args[i]);
         print_expression(stdout, exec, value, PF_SHORT_QUOTE, 0);
+        if (i < argc - 1) printf(" ");
+    }
+    printf("\n");
+    return exec->t;
+}
+
+BUILTIN_FUNC(prints)
+{
+    for (int i = 0; i < argc; i++)
+    {
+        Expr value = exec_eval(exec, callContext, args[i]);
+        print_expression(stdout, exec, value, PF_SHORT_QUOTE | PF_UNESCAPE, 0);
         if (i < argc - 1) printf(" ");
     }
     printf("\n");
@@ -79,4 +84,30 @@ BUILTIN_FUNC(plus)
     expr.type = VT_INT;
     expr.val_int = res;
     return expr;
+}
+
+BUILTIN_FUNC(lambda)
+{
+    /*
+        (lambda (ar gu me nts) body)
+    */
+    if (argc < 2 || args[0].type != VT_PAIR)
+    {
+        log("lambda: wrong arguments");
+        exit(1);
+    }
+    int f_argc;
+    Expr *f_args = get_list(exec, args[0], &f_argc);
+    pFunction func = create_lambda(exec, callContext, f_args, f_argc, args + 1, argc - 1);
+    if (func == NULL)
+    {
+        log("lambda: create_lambda failed");
+        exit(1);
+    }
+
+    Expr res;
+    res.type = VT_FUNC;
+    res.val_func = func;
+
+    return res;
 }

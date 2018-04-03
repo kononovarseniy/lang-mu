@@ -20,6 +20,7 @@ pContext create_context(void)
         return NULL;
     }
 
+    res->links = 1;
     res->base = NULL;
     res->bindings = map;
     return res;
@@ -27,6 +28,8 @@ pContext create_context(void)
 
 void free_context(pContext context)
 {
+    if (context == NULL) return;
+    context_unlink(context->base);
     free_map(context->bindings);
     free(context);
 }
@@ -40,6 +43,7 @@ pContext context_inherit(pContext base)
         return NULL;
     }
     context->base = base;
+    context_link(base);
     return context;
 }
 
@@ -58,4 +62,20 @@ int context_get(pContext context, size_t key, Expr *value)
         context = context->base;
     }
     return MAP_FAILED;
+}
+
+void context_link(pContext context)
+{
+    if (context == NULL) return;
+    context->links++;
+}
+
+void context_unlink(pContext context)
+{
+    if (context == NULL) return;
+    context->links--;
+    if (context->links <= 0)
+    {
+        free_context(context);
+    }
 }

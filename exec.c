@@ -83,7 +83,7 @@ Expr register_atom(pExecutor exec, char *name)
     return res;
 }
 
-Expr register_function(pExecutor exec, pContext context, char *name, BuiltinFunction func)
+Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFunction func)
 {
     size_t atom = add_atom(exec, name);
 
@@ -118,8 +118,10 @@ void exec_init(pExecutor exec, pContext context)
     exec->quote = register_atom(exec, "quote");
 
     // Register built-in function
-    register_function(exec, context, "def", def);
+    register_function(exec, context, "set", set);
+    register_function(exec, context, "lambda", lambda);
     register_function(exec, context, "print", print);
+    register_function(exec, context, "prints", prints);
     register_function(exec, context, "quote", quote);
     Expr plus_func = register_function(exec, context, "plus", plus);
 
@@ -221,13 +223,42 @@ Expr exec_load_tree(pExecutor exec, pSTree tree)
     return res;
 }
 
+Expr exec_builtin_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
+{
+    Expr res = func->builtin(exec, func->context, callContext, args, argc);
+    return res;
+}
+
+Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
+{
+    pUserFunction user = func->user;
+    if (argc != user->argc)
+    {
+        log("exec_function: wrong number of parameters");
+        exit(1);
+    }
+    pContext execContext = context_inherit(func->context);
+    for (int i = 0; i < argc; i++)
+    {
+        Expr value = exec_eval(exec, callContext, args[i]);
+        int bind_res = context_bind(execContext, user->args[i].val_atom, value);
+        if (bind_res == MAP_FAILED)
+        {
+            log("exec_user_function: context_bind failed");
+            exit(1);
+        }
+    }
+    Expr res = exec_eval_all(exec, execContext, user->body);
+    context_unlink(execContext);
+    return res;
+}
+
 Expr exec_function(pExecutor exec, pContext callContext, pFunction func, Expr *args, int argc)
 {
     if (func->type == FT_BUILTIN)
-    {
-        Expr res = func->builtin(exec, func->context, callContext, args, argc);
-        return res;
-    }
+        return exec_builtin_function(exec, func, callContext, args, argc);
+    else if (func->type == FT_USER)
+        return exec_user_function(exec, func, callContext, args, argc);
     else
     {
         log("exec_function: invalid_function");
@@ -371,6 +402,82 @@ Expr *get_list(pExecutor exec, Expr expr, int *len)
     return arr;
 }
 
+Expr make_list(pExecutor exec, Expr *arr, int len)
+{
+    Expr list = exec->nil;
+    for (int i = len - 1; i >= 0; i--)
+    {
+        size_t pair = add_pair(exec);
+        if (pair == EXPR_ERROR)
+        {
+            log("make_list: add_pair failed");
+            return expr_none();
+        }
+        exec->cars[pair] = arr[i];
+        exec->cdrs[pair] = list;
+        Expr tail;
+        tail.type = VT_PAIR;
+        tail.val_pair = pair;
+        list = tail;
+    }
+    return list;
+}
+
+pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len)
+{
+    // Check arguments list
+    for (int i = 0; i < 0; i++)
+    {
+        if (args[i].type != VT_ATOM)
+        {
+            log("create_lambda: all arguments must be atoms");
+            return NULL;
+        }
+    }
+
+    Expr bodyExpr = make_list(exec, body, len);
+    if (bodyExpr.type == VT_NONE)
+    {
+        log("create_lambda: make_list failed");
+        return NULL;
+    }
+
+    Expr *argsCopy = malloc(argc * sizeof(Expr));
+    if (argsCopy == NULL)
+    {
+        log("create_lambda: malloc failed");
+        return NULL;
+    }
+    memcpy(argsCopy, args, argc * sizeof(Expr));
+
+    pUserFunction user = create_user_function();
+    if (user == NULL)
+    {
+        log("create_lambda: create_user_function failed");
+        free(argsCopy);
+        return NULL;
+    }
+    user->args = argsCopy;
+    user->argc = argc;
+    user->body = bodyExpr;
+
+    pFunction func = create_function();
+    if (func == NULL)
+    {
+        log("create_lambda: create_function failed");
+        free_user_function(user); // this will also free argsCopy
+        return NULL;
+    }
+    func->type = FT_USER;
+    func->context = defContext;
+    func->user = user;
+    context_link(defContext);
+
+    return func;
+}
+
+// struct Function functions
+
 pFunction create_function()
 {
     pFunction res = malloc(sizeof(Function));
@@ -389,9 +496,30 @@ void free_function(pFunction func)
     switch (func->type)
     {
         case FT_BUILTIN: break;
+        case FT_USER:
+            free_user_function(func->user);
         default:
             log("free_function: unknown function type. Unable to free");
             break;
     }
+    context_unlink(func->context);
     free(func);
 }
+
+pUserFunction create_user_function()
+{
+    pUserFunction res = malloc(sizeof(UserFunction));
+    if (res == NULL)
+    {
+        log("create_user_function: malloc failed");
+        return NULL;
+    }
+    return res;
+}
+
+void free_user_function(pUserFunction func)
+{
+    free(func->args);
+    free(func);
+}
+

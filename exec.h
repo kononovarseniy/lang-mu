@@ -13,13 +13,14 @@ enum VarType;
 enum FunctionType;
 typedef struct Expr Expr;
 typedef struct Function Function, *pFunction;
+typedef struct UserFunction UserFunction, *pUserFunction;
 typedef struct Executor Executor, *pExecutor;
 
 // context.h uses type `Expr` so it must be included here
 #include "context.h"
 
 #define BUILTIN_FUNC(NAME) Expr NAME(pExecutor exec, pContext defContext, pContext callContext, Expr *args, int argc)
-typedef BUILTIN_FUNC((*BuiltinFunction));
+typedef BUILTIN_FUNC((*pBuiltinFunction));
 
 enum ValueType
 {
@@ -52,7 +53,15 @@ Expr expr_none();
 enum FunctionType
 {
     FT_NONE,
-    FT_BUILTIN
+    FT_BUILTIN,
+    FT_USER
+};
+
+struct UserFunction
+{
+    Expr *args;
+    int argc;
+    Expr body;
 };
 
 struct Function
@@ -61,7 +70,8 @@ struct Function
     pContext context;
     union
     {
-        BuiltinFunction builtin;
+        pBuiltinFunction builtin;
+        pUserFunction user;
     };
 };
 
@@ -83,7 +93,7 @@ pExecutor create_executor(void);
 void free_executor(pExecutor exec);
 
 Expr register_atom(pExecutor exec, char *name);
-Expr register_function(pExecutor exec, pContext context, char *name, BuiltinFunction func);
+Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFunction func);
 
 void exec_init(pExecutor exec, pContext context);
 void exec_cleanup(pExecutor exec);
@@ -98,8 +108,14 @@ size_t add_pair(pExecutor exec);
 int get_len(pExecutor exec, Expr expr);
 Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);
+Expr make_list(pExecutor exec, Expr *arr, int len);
+
+pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len);
 
 pFunction create_function();
 void free_function(pFunction func);
+
+pUserFunction create_user_function();
+void free_user_function(pUserFunction func);
 
 #endif // EXEC_H_INCLUDED

@@ -43,6 +43,8 @@ Expr execute_program(pSTree code_tree)
     printf("\n====================\n");
     print_expression(stdout, exec, result, PF_DEFAULT, 0);
 
+    context_unlink(context);
+
     exec_cleanup(exec);
     free_executor(exec);
     free_context(context);

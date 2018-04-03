@@ -55,9 +55,17 @@ void print_list(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, in
     int is_quote = is_quote_struct(exec, list, len);
     if ((flags & PF_SHORT_QUOTE) && is_quote)
     {
-        print_expression(f, exec, list[1], flags | PF_FORCE_QUOTE, indent);
-        free(list);
-        return;
+        if (flags & PF_FORCE_QUOTE)
+        {
+            // quote only first quotation
+            flags &= ~PF_SHORT_QUOTE;
+        }
+        else
+        {
+            print_expression(f, exec, list[1], flags | PF_FORCE_QUOTE, indent);
+            free(list);
+            return;
+        }
     }
 
     print_indent(f, indent, flags);
