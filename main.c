@@ -5,6 +5,8 @@
 #include "exec.h"
 #include "print.h"
 
+#include "stdlib/longnum.h"
+
 pSTree parse_file(char *name)
 {
     FILE *f;
@@ -54,10 +56,9 @@ Expr execute_program(pSTree code_tree)
 
 int main(int argc, char **argv)
 {
+    /*
     pSTree code_tree = parse_file("tests/hello-world.mu");
-
-    //print_code_tree(code_tree);
     execute_program(code_tree);
-
-    return 0;
+    */
+    return longnum_test_main();
 }

@@ -71,6 +71,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="print.h" />
+		<Unit filename="stdlib/longnum.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="stdlib/longnum.h" />
 		<Unit filename="stree.c">
 			<Option compilerVar="CC" />
 		</Unit>
