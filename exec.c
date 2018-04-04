@@ -68,7 +68,7 @@ void free_executor(pExecutor exec)
     free(exec);
 }
 
-Expr register_atom(pExecutor exec, char *name)
+Expr register_atom(pExecutor exec, pContext context, char *name, int bind)
 {
     size_t atom = add_atom(exec, name);
     if (atom == EXPR_ERROR)
@@ -80,7 +80,18 @@ Expr register_atom(pExecutor exec, char *name)
     Expr res;
     res.type = VT_ATOM;
     res.val_atom = atom;
+
+    if (bind && context_bind(context, atom, res) == MAP_FAILED)
+    {
+        log("self_bind_atom: context_bind failed");
+        exit(1);
+    }
     return res;
+}
+
+int self_bind_atom(pContext context, Expr atom)
+{
+    return 1;
 }
 
 Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFunction func)
@@ -114,9 +125,9 @@ Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFun
 void exec_init(pExecutor exec, pContext context)
 {
     // Create minimal set of atoms
-    exec->nil = register_atom(exec, "nil");
-    exec->t = register_atom(exec, "t");
-    exec->quote = register_atom(exec, "quote");
+    exec->nil = register_atom(exec, context, "nil", 1);
+    exec->t = register_atom(exec, context, "t", 1);
+    exec->quote = register_atom(exec, context, "quote", 0);
 
     // Register built-in function
     register_function(exec, context, "set", set);
@@ -124,6 +135,9 @@ void exec_init(pExecutor exec, pContext context)
     register_function(exec, context, "print", print);
     register_function(exec, context, "prints", prints);
     register_function(exec, context, "quote", quote);
+    register_function(exec, context, "cons", cons);
+    register_function(exec, context, "head", head);
+    register_function(exec, context, "tail", tail);
     Expr plus_func = register_function(exec, context, "plus", plus);
 
     context_bind(context, add_atom(exec, "+"), plus_func);
@@ -403,22 +417,34 @@ Expr *get_list(pExecutor exec, Expr expr, int *len)
     return arr;
 }
 
+Expr make_pair(pExecutor exec, Expr car, Expr cdr)
+{
+    size_t pair = add_pair(exec);
+    if (pair == EXPR_ERROR)
+    {
+        log("make_list: add_pair failed");
+        return expr_none();
+    }
+    exec->cars[pair] = car;
+    exec->cdrs[pair] = cdr;
+
+    Expr res;
+    res.type = VT_PAIR;
+    res.val_pair = pair;
+    return res;
+}
+
 Expr make_list(pExecutor exec, Expr *arr, int len)
 {
     Expr list = exec->nil;
     for (int i = len - 1; i >= 0; i--)
     {
-        size_t pair = add_pair(exec);
-        if (pair == EXPR_ERROR)
+        Expr tail = make_pair(exec, arr[i], list);
+        if (tail.type == VT_NONE)
         {
-            log("make_list: add_pair failed");
+            log("make_list: make_pair failed");
             return expr_none();
         }
-        exec->cars[pair] = arr[i];
-        exec->cdrs[pair] = list;
-        Expr tail;
-        tail.type = VT_PAIR;
-        tail.val_pair = pair;
         list = tail;
     }
     return list;

@@ -92,7 +92,7 @@ struct Executor
 pExecutor create_executor(void);
 void free_executor(pExecutor exec);
 
-Expr register_atom(pExecutor exec, char *name);
+Expr register_atom(pExecutor exec, pContext context, char *name, int bind);
 Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFunction func);
 
 void exec_init(pExecutor exec, pContext context);
@@ -108,6 +108,7 @@ size_t add_pair(pExecutor exec);
 int get_len(pExecutor exec, Expr expr);
 Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);
+Expr make_pair(pExecutor exec, Expr car, Expr cdr);
 Expr make_list(pExecutor exec, Expr *arr, int len);
 
 pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len);

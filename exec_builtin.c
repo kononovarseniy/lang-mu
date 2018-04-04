@@ -86,12 +86,69 @@ BUILTIN_FUNC(plus)
     return expr;
 }
 
+BUILTIN_FUNC(cons)
+{
+    if (argc != 2)
+    {
+        log("cons: expected two arguments");
+        exit(1);
+    }
+    Expr car = exec_eval(exec, callContext, args[0]);
+    Expr cdr = exec_eval(exec, callContext, args[1]);
+    Expr pair = make_pair(exec, car, cdr);
+    if (pair.type == VT_NONE)
+    {
+        log("cons: make_pair failed");
+        exit(1);
+    }
+    return pair;
+}
+
+BUILTIN_FUNC(head)
+{
+    if (argc != 1)
+    {
+        log("head: wrong arguments count");
+        exit(1);
+    }
+    Expr arg = exec_eval(exec, callContext, args[0]);
+    if (arg.type != VT_PAIR)
+    {
+        log("head: argument not a pair");
+        exit(1);
+    }
+    return exec->cars[arg.val_pair];
+}
+
+BUILTIN_FUNC(tail)
+{
+    if (argc != 1)
+    {
+        log("tail: wrong arguments count");
+        exit(1);
+    }
+    Expr arg = exec_eval(exec, callContext, args[0]);
+    if (arg.type != VT_PAIR)
+    {
+        log("tail: argument not a pair");
+        exit(1);
+    }
+    return exec->cdrs[arg.val_pair];
+}
+
+int is_list(pExecutor exec, Expr expr)
+{
+    return
+        expr.type == VT_PAIR ||
+        (expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom);
+}
+
 BUILTIN_FUNC(lambda)
 {
     /*
         (lambda (ar gu me nts) body)
     */
-    if (argc < 2 || args[0].type != VT_PAIR)
+    if (argc < 2 || !is_list(exec, args[0]))
     {
         log("lambda: wrong arguments");
         exit(1);

@@ -8,6 +8,11 @@ BUILTIN_FUNC(print);
 BUILTIN_FUNC(prints);
 BUILTIN_FUNC(quote);
 BUILTIN_FUNC(plus);
+
+BUILTIN_FUNC(cons);
+BUILTIN_FUNC(head);
+BUILTIN_FUNC(tail);
+
 BUILTIN_FUNC(lambda);
 
 #endif // EXEC_BUILTIN_H_INCLUDED
