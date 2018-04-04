@@ -132,6 +132,7 @@ void exec_init(pExecutor exec, pContext context)
     // Register built-in function
     register_function(exec, context, "set", set);
     register_function(exec, context, "lambda", lambda);
+    register_function(exec, context, "cond", cond);
     register_function(exec, context, "print", print);
     register_function(exec, context, "prints", prints);
     register_function(exec, context, "quote", quote);
@@ -249,7 +250,7 @@ Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Ex
     pUserFunction user = func->user;
     if (argc != user->argc)
     {
-        log("exec_function: wrong number of parameters");
+        log("exec_function: wrong number of arguments");
         exit(1);
     }
     pContext execContext = context_inherit(func->context);
@@ -314,16 +315,21 @@ Expr exec_eval(pExecutor exec, pContext context, Expr expr)
     return result;
 }
 
+Expr exec_eval_array(pExecutor exec, pContext context, Expr *array, int len)
+{
+    Expr res;
+    for (int i = 0; i < len; i++)
+    {
+        res = exec_eval(exec, context, array[i]);
+    }
+    return res;
+}
 Expr exec_eval_all(pExecutor exec, pContext context, Expr expr)
 {
     int len;
     Expr *list = get_list(exec, expr, &len);
-
-    Expr res;
-    for (int i = 0; i < len; i++)
-    {
-        res = exec_eval(exec, context, list[i]);
-    }
+    Expr res = exec_eval_array(exec, context, list, len);
+    free(list);
     return res;
 }
 
@@ -448,6 +454,15 @@ Expr make_list(pExecutor exec, Expr *arr, int len)
         list = tail;
     }
     return list;
+}
+
+int is_true(pExecutor exec, Expr expr)
+{
+    if ((expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom) ||
+        (expr.type == VT_INT && expr.val_int == 0) ||
+        (expr.type == VT_NONE))
+        return 0;
+    return 1;
 }
 
 pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len)

@@ -14,5 +14,6 @@ BUILTIN_FUNC(head);
 BUILTIN_FUNC(tail);
 
 BUILTIN_FUNC(lambda);
+BUILTIN_FUNC(cond);
 
 #endif // EXEC_BUILTIN_H_INCLUDED

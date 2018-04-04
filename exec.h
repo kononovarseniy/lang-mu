@@ -99,6 +99,7 @@ void exec_init(pExecutor exec, pContext context);
 void exec_cleanup(pExecutor exec);
 
 Expr exec_load_tree(pExecutor exec, pSTree tree);
+Expr exec_eval_array(pExecutor exec, pContext context, Expr *array, int len);
 Expr exec_eval_all(pExecutor exec, pContext context, Expr expr);
 Expr exec_eval(pExecutor exec, pContext context, Expr expr);
 
@@ -110,6 +111,8 @@ Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);
 Expr make_pair(pExecutor exec, Expr car, Expr cdr);
 Expr make_list(pExecutor exec, Expr *arr, int len);
+
+int is_true(pExecutor exec, Expr expr);
 
 pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len);
 

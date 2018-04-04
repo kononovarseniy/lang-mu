@@ -31,3 +31,17 @@
 (foo 5 -6)
 (set get-nil (lambda nil nil))
 (get-nil)
+
+(prints "<<< cond tests >>>")
+(print nil (cond))
+(cond (0 (prints "never executed")
+      (nil (prints "never executed"))))
+(cond (0 (prints "never executed")
+      (nil (prints "never executed")))
+      (T (prints "Hello")))
+(cond (0 (prints "never executed"))
+      (T (prints "Hello"))
+      (T (prints "never executed"))
+      (atom not binded))
+(print 2 (cond (0 1) (1 2)))
+  

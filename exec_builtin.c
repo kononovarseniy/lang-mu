@@ -168,3 +168,30 @@ BUILTIN_FUNC(lambda)
 
     return res;
 }
+
+BUILTIN_FUNC(cond)
+{
+    for (int i = 0; i < argc; i++)
+    {
+        int len;
+        Expr *list = get_list(exec, args[i], &len);
+
+        if (len == 0)
+        {
+            log("cond: invalid arguments");
+            free(list);
+            exit(1);
+        }
+
+        Expr cond_expr = exec_eval(exec, callContext, list[0]);
+        if (is_true(exec, cond_expr))
+        {
+            Expr res = exec_eval_array(exec, callContext, list + 1, len - 1);
+            free(list);
+            return res;
+        }
+
+        free(list);
+    }
+    return exec->nil;
+}
