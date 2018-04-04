@@ -6,6 +6,7 @@
 #include "stree.h"
 
 #define EXPR_ERROR INT_MAX
+#define EXPR_NOT_FOUND (INT_MAX - 1)
 #define MAX_ATOMS 102400
 #define MAX_PAIRS 102400
 
@@ -103,12 +104,14 @@ Expr exec_eval_array(pExecutor exec, pContext context, Expr *array, int len);
 Expr exec_eval_all(pExecutor exec, pContext context, Expr expr);
 Expr exec_eval(pExecutor exec, pContext context, Expr expr);
 
+size_t find_atom(pExecutor exec, char *name);
 size_t add_atom(pExecutor exec, char *name);
 size_t add_pair(pExecutor exec);
 
 int get_len(pExecutor exec, Expr expr);
 Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);
+Expr make_atom(pExecutor exec, char *name);
 Expr make_pair(pExecutor exec, Expr car, Expr cdr);
 Expr make_list(pExecutor exec, Expr *arr, int len);
 

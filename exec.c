@@ -139,8 +139,10 @@ void exec_init(pExecutor exec, pContext context)
     register_function(exec, context, "cons", cons);
     register_function(exec, context, "head", head);
     register_function(exec, context, "tail", tail);
-    Expr plus_func = register_function(exec, context, "plus", plus);
 
+    register_function(exec, context, "gensym", gensym);
+
+    Expr plus_func = register_function(exec, context, "plus", plus);
     context_bind(context, add_atom(exec, "+"), plus_func);
 }
 
@@ -333,7 +335,7 @@ Expr exec_eval_all(pExecutor exec, pContext context, Expr expr)
     return res;
 }
 
-size_t add_atom(pExecutor exec, char *name)
+size_t find_atom(pExecutor exec, char *name)
 {
     // Create name copy
     char *copy = strdup(name);
@@ -352,7 +354,30 @@ size_t add_atom(pExecutor exec, char *name)
             return i;
         }
     }
-    // Atom not exists. Create it!
+    free(copy);
+    return EXPR_NOT_FOUND;
+}
+
+size_t add_atom(pExecutor exec, char *name)
+{
+    size_t found = find_atom(exec, name);
+    if (found == EXPR_ERROR)
+    {
+        log("add_atom: find_atom failed");
+        return EXPR_ERROR;
+    }
+    if (found != EXPR_NOT_FOUND)
+        return found;
+
+    // Create name copy
+    char *copy = strdup(name);
+    if (copy == NULL)
+    {
+        perror("add_atom: strdup failed");
+        return EXPR_ERROR;
+    }
+    strtolower(copy);
+    // Create atom!
     if (exec->atomsCount == MAX_ATOMS)
     {
         log("add_atom: limit exceeded");
@@ -421,6 +446,21 @@ Expr *get_list(pExecutor exec, Expr expr, int *len)
     Expr *arr = get_items(exec, expr, l);
     *len = l;
     return arr;
+}
+
+Expr make_atom(pExecutor exec, char *name)
+{
+    size_t atom = add_atom(exec, name);
+    if (atom == EXPR_ERROR)
+    {
+        log("make_atom: add_atom failed");
+        return expr_none();
+    }
+
+    Expr res;
+    res.type = VT_ATOM;
+    res.val_atom = atom;
+    return res;
 }
 
 Expr make_pair(pExecutor exec, Expr car, Expr cdr)

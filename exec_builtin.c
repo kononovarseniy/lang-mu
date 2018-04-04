@@ -195,3 +195,34 @@ BUILTIN_FUNC(cond)
     }
     return exec->nil;
 }
+
+BUILTIN_FUNC(gensym)
+{
+    if (argc != 0)
+    {
+        log("gensym: too many arguments");
+        exit(1);
+    }
+    for (;;)
+    {
+        int n = rand() % 1000000;
+        char name[7];
+        sprintf(name, "_%d", n);
+        size_t found = find_atom(exec, name);
+        if (found == EXPR_ERROR)
+        {
+            log("gensym: find_atom failed");
+            exit(1);
+        }
+        if (found == EXPR_NOT_FOUND)
+        {
+            Expr res = make_atom(exec, name);
+            if (res.type == VT_NONE)
+            {
+                log("gensym: make_atom failed");
+                exit(1);
+            }
+            return res;
+        }
+    }
+}

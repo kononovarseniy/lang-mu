@@ -16,4 +16,9 @@ BUILTIN_FUNC(tail);
 BUILTIN_FUNC(lambda);
 BUILTIN_FUNC(cond);
 
+BUILTIN_FUNC(gensym);
+BUILTIN_FUNC(backquote);
+BUILTIN_FUNC(macro);
+BUILTIN_FUNC(macroexpand);
+
 #endif // EXEC_BUILTIN_H_INCLUDED
