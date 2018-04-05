@@ -247,25 +247,103 @@ Expr exec_builtin_function(pExecutor exec, pFunction func, pContext callContext,
     return res;
 }
 
+int check_args_count(pUserFunction func, int argc)
+{
+    if (argc < func->argc) // Too few
+        return 0;
+    if (func->rest.type != VT_NONE) // Rest present
+        return 1;
+    if (argc <= func->argc + func->optc) // Not too many
+        return 1;
+    return 0;
+}
+
+int bind_req_and_opt_args(pExecutor exec, pContext execContext, pUserFunction func, Expr *args, int argc)
+{
+    int fullc = func->argc + func->optc;
+    for (int i = 0; i < fullc; i++)
+    {
+        Expr var;
+        if (i < func->argc)
+            var = func->args[i];
+        else
+            var = func->opt[i - func->argc];
+
+        Expr value;
+        if (i < argc)
+            value = args[i];
+        else
+            value = func->def[i - func->argc];
+
+        if (context_bind(execContext, var.val_atom, value) == MAP_FAILED)
+        {
+            log("bind_req_and_opt_args: context_bind failed");
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int bind_rest(pExecutor exec, pContext execContext, pUserFunction func, Expr *args, int argc)
+{
+    int fullc = func->argc + func->optc;
+    if (func->rest.type != VT_NONE) // Rest present
+    {
+        Expr rest_value = exec->nil;
+        int restc = argc - fullc;
+        if (restc > 0)
+            rest_value = make_list(exec, args + fullc, restc);
+
+        if (context_bind(execContext, func->rest.val_atom, rest_value) == MAP_FAILED)
+        {
+            log("bind_rest: context_bind failed");
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int user_function_bind_args(pExecutor exec, pContext execContext, pContext callContext, pUserFunction func, Expr *args, int argc)
+{
+    if (!bind_req_and_opt_args(exec, execContext, func, args, argc))
+    {
+        return 0;
+    }
+    if (!bind_rest(exec, execContext, func, args, argc))
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
 Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
 {
     pUserFunction user = func->user;
-    if (argc != user->argc)
+    if (!check_args_count(user, argc))
     {
-        log("exec_function: wrong number of arguments");
+        log("exec_user_function: wrong number of arguments");
         exit(1);
     }
-    pContext execContext = context_inherit(func->context);
-    for (int i = 0; i < argc; i++)
+    // Eval arguments
+    Expr *values = malloc(argc * sizeof(Expr));
+    if (values == NULL)
     {
-        Expr value = exec_eval(exec, callContext, args[i]);
-        int bind_res = context_bind(execContext, user->args[i].val_atom, value);
-        if (bind_res == MAP_FAILED)
-        {
-            log("exec_user_function: context_bind failed");
-            exit(1);
-        }
+        log("exec_user_function: malloc failed");
+        exit(1);
     }
+    for (int i = 0; i < argc; i++)
+        values[i] = exec_eval(exec, callContext, args[i]);
+    // Bind arguments
+    pContext execContext = context_inherit(func->context);
+    if (!user_function_bind_args(exec, execContext, callContext, user, values, argc))
+    {
+        log("exec_user_function: user_function_bind_args failed");
+        free(values);
+        exit(1);
+    }
+    free(values);
+    // Execute
     Expr res = exec_eval_all(exec, execContext, user->body);
     context_unlink(execContext);
     return res;
@@ -505,18 +583,128 @@ int is_true(pExecutor exec, Expr expr)
     return 1;
 }
 
-pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len)
+int scan_arguments(pExecutor exec, Expr *args, int argc, int *opt_pos, int *rest_pos)
 {
-    // Check arguments list
-    for (int i = 0; i < 0; i++)
+    Expr opt_flag = make_atom(exec, "&optional");
+    Expr rest_flag = make_atom(exec, "&rest");
+
+    int opt = -1;
+    int rest = -1;
+
+    for (int i = 0; i < argc; i++)
     {
-        if (args[i].type != VT_ATOM)
+        if (args[i].type == VT_ATOM)
         {
-            log("create_lambda: all arguments must be atoms");
-            return NULL;
+            if (args[i].val_atom == opt_flag.val_atom)
+            {
+                if (opt == -1 && rest == -1)
+                    opt = i;
+                else
+                    return 0;
+            }
+            else if (args[i].val_atom == rest_flag.val_atom)
+            {
+                if (rest == -1)
+                    rest = i;
+                else
+                    return 0;
+            }
         }
+        else if (opt != -1 && rest == -1) // optional section
+        {
+            int len;
+            Expr *list = get_list(exec, args[i], &len);
+            int good = len == 2 && list[0].type == VT_ATOM;
+            free(list);
+            if (!good)
+                return 0;
+        }
+        else
+            return 0;
+    }
+    if (rest == -1)
+        rest = argc;
+    if (opt == -1)
+        opt = rest;
+
+    *opt_pos = opt;
+    *rest_pos = rest;
+    return 1;
+}
+
+void parse_opt_arg(pExecutor exec, Expr expr, Expr *arg, Expr *def)
+{
+    if (expr.type == VT_ATOM)
+    {
+        *arg = expr;
+        *def = exec->nil;
+    }
+    else // VT_PAIR
+    {
+        int len;
+        Expr *list = get_list(exec, expr, &len);
+        *arg = list[0];
+        *def = list[1];
+        free(list);
+    }
+}
+
+int parse_arguments(pExecutor exec, pUserFunction func, Expr *args, int argc)
+{
+    int opt_pos, rest_pos;
+    if (!scan_arguments(exec, args, argc, &opt_pos, &rest_pos))
+        return 0;
+
+    int req_len = opt_pos;
+    int opt_len = rest_pos - opt_pos - 1;
+    if (opt_len < 0) opt_len = 0;
+    int rest_len = argc - rest_pos;
+
+    Expr *req, *opt, *def, rest;
+
+    req = malloc(req_len * sizeof(Expr));
+    if (req == NULL)
+    {
+        log("parse_arguments: malloc failed");
+        return 0;
+    }
+    opt = malloc(opt_len * sizeof(Expr));
+    if (opt == NULL)
+    {
+        log("parse_arguments: malloc failed");
+        free(req);
+        return 0;
+    }
+    def = malloc(opt_len * sizeof(Expr));
+    if (def == NULL)
+    {
+        log("parse_arguments: malloc failed");
+        free(req);
+        free(opt);
+        return 0;
     }
 
+    for (int i = 0; i < req_len; i++)
+        req[i] = args[i];
+    for (int i = 0; i < opt_len; i++)
+        parse_opt_arg(exec, args[opt_pos + 1 + i], opt + i, def + i);
+    if (rest_len != 0)
+        rest = args[rest_pos + 1];
+    else
+        rest = expr_none();
+
+    func->args = req;
+    func->argc = req_len;
+    func->opt = opt;
+    func->def = def;
+    func->optc = opt_len;
+    func->rest = rest;
+
+    return 1;
+}
+
+pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len)
+{
     Expr bodyExpr = make_list(exec, body, len);
     if (bodyExpr.type == VT_NONE)
     {
@@ -524,23 +712,18 @@ pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int arg
         return NULL;
     }
 
-    Expr *argsCopy = malloc(argc * sizeof(Expr));
-    if (argsCopy == NULL)
-    {
-        log("create_lambda: malloc failed");
-        return NULL;
-    }
-    memcpy(argsCopy, args, argc * sizeof(Expr));
-
     pUserFunction user = create_user_function();
     if (user == NULL)
     {
         log("create_lambda: create_user_function failed");
-        free(argsCopy);
         return NULL;
     }
-    user->args = argsCopy;
-    user->argc = argc;
+    if (!parse_arguments(exec, user, args, argc))
+    {
+        log("create_lambda: parse_arguments failed");
+        free(user);
+        return NULL;
+    }
     user->body = bodyExpr;
 
     pFunction func = create_function();
@@ -602,6 +785,8 @@ pUserFunction create_user_function()
 void free_user_function(pUserFunction func)
 {
     free(func->args);
+    free(func->opt);
+    free(func->def);
     free(func);
 }
 

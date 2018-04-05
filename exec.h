@@ -62,6 +62,10 @@ struct UserFunction
 {
     Expr *args;
     int argc;
+    Expr *opt;
+    Expr *def;
+    int optc;
+    Expr rest;
     Expr body;
 };
 

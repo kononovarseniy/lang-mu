@@ -32,6 +32,14 @@
 (set get-nil (lambda nil nil))
 (get-nil)
 
+(set print-to-10 (lambda (&optional (n 0))
+    (cond ((+ n -10) (print n) (print-to-10 (+ n 1))))
+))
+(print-to-10)
+
+(set list (lambda (&rest items) items))
+(print (list 1 2 (+ 1 2)))
+
 (prints "<<< cond tests >>>")
 (print nil (cond))
 (cond (0 (prints "never executed")
@@ -44,12 +52,9 @@
       (T (prints "never executed"))
       (atom not binded))
 (print 2 (cond (0 1) (1 2)))
-(set print-to-10 (lambda (n)
-    (cond ((+ n -10) (print n) (print-to-10 (+ n 1))))
-))
-(print-to-10 0)
 
 (prints "<<< gensym tests >>>")
 (print (gensym))
 (print (gensym))
 (print (gensym))
+
