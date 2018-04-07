@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 //Работа с памятью
 pLongNum create_longnum()
@@ -163,76 +164,7 @@ _Bool longnum_greater(pLongNum a, pLongNum b) //">"
 _Bool longnum_less(pLongNum a, pLongNum b) //"<"
 {
     _Bool e = 0;
-
-    if(a->s == b->s)
-    {
-        if(a->s == 1)
-        {
-            if(a->l == b->l)
-            {
-                for(int i = a->l - 1; i >= 0; i--)
-                {
-                    if(*(a->n + i) != *(b->n + i))
-                    {
-                        if(*(a->n + i) < *(b->n + i))
-                        {
-                            e = 1;
-                            break;
-                        }
-                        else
-                        {
-                            e = 0;
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if(a->l < b->l)
-                    e = 1;
-                else
-                    e = 0;
-            }
-        }
-        else
-        {
-            if(a->l == b->l)
-            {
-                for(int i = a->l - 1; i >= 0; i--)
-                {
-                    if(*(a->n + i) != *(b->n + i))
-                    {
-                        if(*(a->n + i) > *(b->n + i))
-                        {
-                            e = 1;
-                            break;
-                        }
-                        else
-                        {
-                            e = 0;
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if(a->l > b->l)
-                    e = 1;
-                else
-                    e = 0;
-            }
-        }
-    }
-    else
-    {
-        if(a->s == -1)
-            e = 1;
-        else
-            e = 0;
-    }
-
+    if(longnum_greater(a, b) == 0 && longnum_equal(a, b) == 0) e = 1;
     return e;
 }
 _Bool longnum_equal(pLongNum a, pLongNum b) //"="
@@ -242,11 +174,12 @@ _Bool longnum_equal(pLongNum a, pLongNum b) //"="
     if(a->s == b->s)
         if(a->l == b->l)
             for(int i = 0; i < a->l; i++)
+            {    
                 if(*(a->n + i) != *(b->n + i))
                     break;
                 else
                     e = 1;
-
+            }
     return e;
 }
 _Bool longnum_greater_or_equal(pLongNum a, pLongNum b) //">="
@@ -263,13 +196,6 @@ _Bool longnum_less_or_equal(pLongNum a, pLongNum b) //"<="
         e = 1;
     return e;
 }
-_Bool longnum_unequal(pLongNum a, pLongNum b) //"!="
-{
-    _Bool e = 0;
-    if(longnum_equal(a, b) == 0)
-        e = 1;
-    return e;
-}
 int longnum_compare(pLongNum a, pLongNum b)
 {
     int e = 0;
@@ -280,7 +206,7 @@ int longnum_compare(pLongNum a, pLongNum b)
     return e;
 }
 
-//Арифметические операции
+//Конвертация типов
 pLongNum longnum_parse(char *num, int s) //Преобразование строки в длинное число
 {
     //Не работает с системами счисления, отличными от десятичной, пока
@@ -313,6 +239,39 @@ pLongNum longnum_parse(char *num, int s) //Преобразование стро
 
     return a;
 }
+char *longnum_to_string(pLongNum a)
+{
+        int l = a->l;
+        if(a->s == -1) l++;
+        char *num = malloc(l * sizeof(char));
+        
+        for(int i = 0; i < a->l; i++)
+        {
+                *(num + l - i) = (char)(*(a->n + i) + '0');
+        }
+        if(a->s == -1) *num = '-';
+        return num;
+}
+double longnum_to_double(pLongNum a)
+{
+        long double num;
+        if(a->l >= 308)
+        {
+                if(a->s == -1) num = -1 * INFINITY;
+                else num = INFINITY;
+        }
+        else
+        {
+                double numm = 0;
+                double nume = pow(1e+1, a->l % 100) * pow(1e+10, (a->l % 10) / 10) * pow(1e+100, a->l / 100);
+                for(int i = 0; i < 16; i++)
+                    numm += *(a->n + a->l - i) * pow(10, -i);
+                num = numm * nume;
+        }
+        return num;
+}
+
+//Арифметические операции
 pLongNum longnum_def(pLongNum a, pLongNum b) //Разность длинных числел
 {
     pLongNum c = malloc(sizeof(LongNum));
@@ -364,34 +323,66 @@ pLongNum longnum_sum(pLongNum a, pLongNum b) //Сумма длинных чис�
     longnum_nulldel(c);
     return c;
 }
-pLongNum longnum_comp(pLongNum a, pLongNum b) //Произведение длинных чисел
+pLongNum longnum_mult(pLongNum a, pLongNum b) //Произведение длинных чисел
 {
     pLongNum c = malloc(sizeof(LongNum));
-
+    
+    c->l = a->l + b->l;
+    c->s = a->s * b->s;
+    longnum_mem(c);
+    *c->n = 0;
+    
+    for(int i = 0; i < b->l; i++)
+    {
+            pLongNum p = malloc(sizeof(LongNum));
+            p->l = a->l + 1;
+            longnum_mem(p);
+            *p->n = 0;
+            for(int j = 0; j < a->l; j++)
+            {
+                    *(p->n + j) += *(a->n + j) * *(b->n + i);
+                    *(p->n + j + 1) = *(p->n + j) / 10;
+                    *(p->n + j) %= 10;
+            }
+            for(int k = 0; k < p->l; k++)
+            {
+                    *(c->n + i + k) += *(p->n + k);
+                    *(c->n + i + k + 1) += *(c->n + i + k) / 10;
+                    *(c->n + i + k) %= 10;
+            }
+            free_longnum(p);
+    }
+    
+    longnum_nulldel(c);
+    
     return c;
 }
 
 // Весь тестовый код здесь
-int longnum_test_main()
+int main()
 {
     pLongNum a = create_longnum();
     pLongNum b = create_longnum();
+    pLongNum c = create_longnum();
 
-    a = longnum_parse("-63", 10);
-    b = longnum_parse("-63", 10);
+    a = longnum_parse("232323", 10);
+    b = longnum_parse("292929", 10);
 
     longnum_print(a);
     longnum_print(b);
 
-    //c = sum(a, b);
-    //longnum_prt(c);
+    printf("%lf\n", longnum_to_double(a));
+    
+    //c = longnum_sum(a, b);
+    //longnum_print(c);
 
-    //c = comp(a, b);
-    //longnum_prt(c);
+    //c = longnum_mult(a, b);
+    //longnum_print(c);
+    //printf("%s", longnum_to_string(c));
 
     free_longnum(a);
     free_longnum(b);
-    //longnum_del(c);
+    free_longnum(c);
 
     return 0;
 }
