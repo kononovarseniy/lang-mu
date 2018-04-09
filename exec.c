@@ -169,6 +169,8 @@ void exec_init(pExecutor exec, pContext context)
 
     register_function(exec, context, "gensym", gensym);
     register_function(exec, context, "backquote", backquote);
+    register_function(exec, context, "macro", macro);
+    register_function(exec, context, "setmacro", setmacro);
 
     Expr plus_func = register_function(exec, context, "plus", plus);
     context_bind(context, add_atom(exec, "+"), plus_func);
@@ -355,13 +357,21 @@ Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Ex
     }
     // Eval arguments
     Expr *values = malloc(argc * sizeof(Expr));
-    if (values == NULL)
+    if (func->type != FT_MACRO)
     {
-        log("exec_user_function: malloc failed");
-        exit(1);
+        if (values == NULL)
+        {
+            log("exec_user_function: malloc failed");
+            exit(1);
+        }
+        for (int i = 0; i < argc; i++)
+            values[i] = exec_eval(exec, callContext, args[i]);
     }
-    for (int i = 0; i < argc; i++)
-        values[i] = exec_eval(exec, callContext, args[i]);
+    else
+    {
+        for (int i = 0; i < argc; i++)
+            values[i] = args[i];
+    }
     // Bind arguments
     pContext execContext = context_inherit(func->context);
     if (!user_function_bind_args(exec, execContext, callContext, user, values, argc))
@@ -374,6 +384,10 @@ Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Ex
     // Execute
     Expr res = exec_eval_all(exec, execContext, user->body);
     context_unlink(execContext);
+    // Execute return
+    if (func->type == FT_MACRO)
+        res = exec_eval(exec, callContext, res);
+
     return res;
 }
 
@@ -381,7 +395,7 @@ Expr exec_function(pExecutor exec, pContext callContext, pFunction func, Expr *a
 {
     if (func->type == FT_BUILTIN)
         return exec_builtin_function(exec, func, callContext, args, argc);
-    else if (func->type == FT_USER)
+    else if (func->type == FT_USER || func->type == FT_MACRO)
         return exec_user_function(exec, func, callContext, args, argc);
     else
     {
@@ -389,6 +403,24 @@ Expr exec_function(pExecutor exec, pContext callContext, pFunction func, Expr *a
         // TODO: print debug info
         exit(1);
     }
+}
+
+Expr get_function(pExecutor exec, pContext context, Expr list_head)
+{
+    if (list_head.type == VT_ATOM)
+    {
+        Expr macro;
+        if (context_get_macro(context, list_head.val_atom, &macro) == MAP_SUCCESS)
+        {
+            return macro;
+        }
+    }
+    Expr func = exec_eval(exec, context, list_head);
+    if (func.type != VT_FUNC || func.val_func->type == FT_MACRO)
+    {
+        return expr_none();
+    }
+    return func;
 }
 
 Expr exec_eval(pExecutor exec, pContext context, Expr expr)
@@ -411,10 +443,10 @@ Expr exec_eval(pExecutor exec, pContext context, Expr expr)
     int len;
     Expr *list = get_list(exec, expr, &len);
 
-    Expr func = exec_eval(exec, context, list[0]);
-    if (func.type != VT_FUNC)
+    Expr func = get_function(exec, context, list[0]);
+    if (is_none(func))
     {
-        log("eval: list head not a function");
+        log("eval: list head not a function or registered macro");
         // TODO: print debug information
         exit(1);
     }
@@ -742,7 +774,7 @@ int parse_arguments(pExecutor exec, pUserFunction func, Expr *args, int argc)
     return 1;
 }
 
-pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len)
+pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len, enum FunctionType type)
 {
     Expr bodyExpr = make_list(exec, body, len);
     if (bodyExpr.type == VT_NONE)
@@ -772,7 +804,7 @@ pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int arg
         free_user_function(user); // this will also free argsCopy
         return NULL;
     }
-    func->type = FT_USER;
+    func->type = type;
     func->context = defContext;
     func->user = user;
     context_link(defContext);
@@ -800,6 +832,7 @@ void free_function(pFunction func)
     switch (func->type)
     {
         case FT_BUILTIN: break;
+        case FT_MACRO:
         case FT_USER:
             free_user_function(func->user);
         default:

@@ -57,7 +57,8 @@ enum FunctionType
 {
     FT_NONE,
     FT_BUILTIN,
-    FT_USER
+    FT_USER,
+    FT_MACRO
 };
 
 struct UserFunction
@@ -79,6 +80,7 @@ struct Function
     {
         pBuiltinFunction builtin;
         pUserFunction user;
+        pUserFunction macro;
     };
 };
 
@@ -127,7 +129,7 @@ Expr make_list(pExecutor exec, Expr *arr, int len);
 
 int is_true(pExecutor exec, Expr expr);
 
-pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len);
+pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len, enum FunctionType type);
 
 pFunction create_function();
 void free_function(pFunction func);

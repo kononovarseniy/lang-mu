@@ -143,22 +143,22 @@ int is_list(pExecutor exec, Expr expr)
         (expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom);
 }
 
-BUILTIN_FUNC(lambda)
+Expr lambda_impl(pExecutor exec, pContext callContext, Expr *args, int argc, enum FunctionType type)
 {
     /*
         (lambda (ar gu me nts) body)
     */
     if (argc < 2 || !is_list(exec, args[0]))
     {
-        log("lambda: wrong arguments");
+        logf("%s: wrong arguments", type == FT_USER ? "lambda" : "macro");
         exit(1);
     }
     int f_argc;
     Expr *f_args = get_list(exec, args[0], &f_argc);
-    pFunction func = create_lambda(exec, callContext, f_args, f_argc, args + 1, argc - 1);
+    pFunction func = create_lambda(exec, callContext, f_args, f_argc, args + 1, argc - 1, type);
     if (func == NULL)
     {
-        log("lambda: create_lambda failed");
+        logf("%s: create_lambda failed", type == FT_USER ? "lambda" : "macro");
         exit(1);
     }
 
@@ -167,6 +167,11 @@ BUILTIN_FUNC(lambda)
     res.val_func = func;
 
     return res;
+}
+
+BUILTIN_FUNC(lambda)
+{
+    return lambda_impl(exec, callContext, args, argc, FT_USER);
 }
 
 BUILTIN_FUNC(cond)
@@ -299,6 +304,12 @@ Expr backquote_impl(pExecutor exec, pContext context, Expr expr)
         Expr evaluated = exec_eval(exec, context, next);
         Expr rest = backquote_impl(exec, context, get_tail(exec, tail));
 
+        if (evaluated.type != VT_PAIR)
+        {
+            log("backquote: not a list after `,@`");
+            exit(1);
+        }
+
         int len;
         Expr *items = get_list(exec, evaluated, &len);
         for (int i = len - 1; i >= 0; i--)
@@ -314,7 +325,9 @@ Expr backquote_impl(pExecutor exec, pContext context, Expr expr)
         return rest;
     }
     else
-        return make_pair(exec, head, backquote_impl(exec, context, get_tail(exec, expr)));
+        return make_pair(exec,
+                         backquote_impl(exec, context, head),
+                         backquote_impl(exec, context, get_tail(exec, expr)));
 }
 
 BUILTIN_FUNC(backquote)
@@ -330,4 +343,35 @@ BUILTIN_FUNC(backquote)
         exit(1);
     }
     return backquote_impl(exec, callContext, args[0]);
+}
+
+BUILTIN_FUNC(macro)
+{
+    return lambda_impl(exec, callContext, args, argc, FT_MACRO);
+}
+
+BUILTIN_FUNC(setmacro)
+{
+    /*
+        (set a 1)
+    */
+    if (argc != 2)
+    {
+        log("setmacro: wrong arguments syntax");
+        exit(1);
+    }
+    Expr atom = args[0];
+    if (atom.type != VT_ATOM)
+    {
+        log("setmacro: wrong arguments syntax");
+        exit(1);
+    }
+    Expr val = exec_eval(exec, callContext, args[1]);
+    if (context_set_macro(callContext, atom.val_atom, val) == MAP_FAILED)
+    {
+        log("setmacro: context_set_macro failed");
+        exit(1);
+    }
+
+    return val;
 }

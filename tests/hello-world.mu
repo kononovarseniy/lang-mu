@@ -14,6 +14,7 @@
 (print '(, ,@ b ,a ,@a))
 (prints ''(1 2 3))
 (prints `(1 ,(+ 1 1) 3 ,@(cons 4 (cons 5 nil)) 6))
+(prints `(setmacro ,",name," (print ,",args," ,@'(",body,"))))
 
 (prints "<<< check lists >>>")
 (print (cons 'a (cons 1 nil)))
@@ -62,4 +63,15 @@
 (print (gensym))
 (print (gensym))
 (print (gensym))
+
+(prints "<<< macro tests >>>")
+(setmacro defmacro (macro (name args &rest body)
+    `(setmacro ,name (macro ,args ,@body))
+))
+(print "123")
+(defmacro defun (name args &rest body)
+    `(set ,name (lambda ,args ,@body))
+)
+(defun foo (a b &rest c) (+ a b))
+(prints "2 + 3 =" (foo 2 3 4 5 6))
 
