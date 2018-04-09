@@ -203,11 +203,23 @@ BUILTIN_FUNC(gensym)
         log("gensym: too many arguments");
         exit(1);
     }
-    for (;;)
+    Expr counter = make_atom(exec, "*gensym-counter*");
+    if (counter.type == VT_NONE)
     {
-        int n = rand() % 1000000;
+        log("gensym make_atom failed");
+        exit(1);
+    }
+    Expr value;
+    if (context_get(defContext, counter.val_atom, &value) == MAP_FAILED)
+    {
+        value.type = VT_INT;
+        value.val_int = 1;
+    }
+
+    for (int n = value.val_int;;n++)
+    {
         char name[7];
-        sprintf(name, "_%d", n);
+        sprintf(name, "#:%d", n);
         size_t found = find_atom(exec, name);
         if (found == EXPR_ERROR)
         {
@@ -222,7 +234,100 @@ BUILTIN_FUNC(gensym)
                 log("gensym: make_atom failed");
                 exit(1);
             }
+            value.val_int = n + 1;
+            if (context_bind(defContext, counter.val_atom, value) == MAP_FAILED)
+            {
+                log("gensym: context_bind failed");
+                exit(1);
+            }
             return res;
         }
     }
+}
+
+
+Expr backquote_impl(pExecutor exec, pContext context, Expr expr)
+{
+    if (is_equal(expr, exec->nil)) return exec->nil;
+    if (expr.type == VT_ATOM)
+    {
+        if (!is_equal(expr, exec->comma) &&
+            !is_equal(expr, exec->comma_atsign))
+        {
+            return expr;
+        }
+        else
+        {
+            if (is_equal(expr, exec->comma))
+            {
+                log("backquote: unexpected `,`");
+                exit(1);
+            }
+            if (is_equal(expr, exec->comma_atsign))
+            {
+                log("backquote: unexpected `,@`");
+                exit(1);
+            }
+        }
+    }
+    if (expr.type != VT_PAIR) return expr;
+    Expr head = get_head(exec, expr);
+    if (is_equal(head, exec->comma))
+    {
+        Expr tail = get_tail(exec, expr);
+        Expr next = get_head(exec, tail);
+        if (is_none(next))
+        {
+            log("backquote: unexpected end of list");
+            exit(1);
+        }
+
+        Expr evaluated = exec_eval(exec, context, next);
+        Expr rest = backquote_impl(exec, context, get_tail(exec, tail));
+        return make_pair(exec, evaluated, rest);
+    }
+    else if (is_equal(head, exec->comma_atsign))
+    {
+        Expr tail = get_tail(exec, expr);
+        Expr next = get_head(exec, tail);
+        if (is_none(next))
+        {
+            log("backquote: unexpected end of list");
+            exit(1);
+        }
+
+        Expr evaluated = exec_eval(exec, context, next);
+        Expr rest = backquote_impl(exec, context, get_tail(exec, tail));
+
+        int len;
+        Expr *items = get_list(exec, evaluated, &len);
+        for (int i = len - 1; i >= 0; i--)
+        {
+            rest = make_pair(exec, items[i], rest);
+            if (is_none(rest))
+            {
+                log("backuote: make_pair failed");
+                exit(1);
+            }
+        }
+
+        return rest;
+    }
+    else
+        return make_pair(exec, head, backquote_impl(exec, context, get_tail(exec, expr)));
+}
+
+BUILTIN_FUNC(backquote)
+{
+    if (argc > 1)
+    {
+        log("backquote: too many arguments");
+        exit(1);
+    }
+    if (argc < 1)
+    {
+        log("backquote: too few arguments");
+        exit(1);
+    }
+    return backquote_impl(exec, callContext, args[0]);
 }

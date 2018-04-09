@@ -14,6 +14,31 @@ Expr expr_none()
     res.type = VT_NONE;
     return res;
 }
+int is_none(Expr expr)
+{
+    return expr.type == VT_NONE;
+}
+int is_equal(Expr a, Expr b)
+{
+    if (a.type != b.type) return 0;
+    switch (a.type)
+    {
+    case VT_ATOM:
+        return a.val_atom == b.val_atom;
+    case VT_CHAR:
+        return a.val_char == b.val_char;
+    case VT_INT:
+        return a.val_int == b.val_int;
+    case VT_STRING:
+        return strcmp(a.val_str, b.val_str) == 0;
+    case VT_FUNC:
+    case VT_PAIR:
+    case VT_NONE:
+    default:
+        log("is_equal: unable to compare");
+        exit(1);
+    }
+}
 
 pExecutor create_executor(void)
 {
@@ -128,6 +153,8 @@ void exec_init(pExecutor exec, pContext context)
     exec->nil = register_atom(exec, context, "nil", 1);
     exec->t = register_atom(exec, context, "t", 1);
     exec->quote = register_atom(exec, context, "quote", 0);
+    exec->comma = register_atom(exec, context, "#:comma", 0);
+    exec->comma_atsign = register_atom(exec, context, "#:comma_atsign", 0);
 
     // Register built-in function
     register_function(exec, context, "set", set);
@@ -141,6 +168,7 @@ void exec_init(pExecutor exec, pContext context)
     register_function(exec, context, "tail", tail);
 
     register_function(exec, context, "gensym", gensym);
+    register_function(exec, context, "backquote", backquote);
 
     Expr plus_func = register_function(exec, context, "plus", plus);
     context_bind(context, add_atom(exec, "+"), plus_func);
@@ -479,6 +507,17 @@ size_t add_pair(pExecutor exec)
     int res = exec->pairsCount;
     exec->pairsCount++;
     return res;
+}
+
+Expr get_head(pExecutor exec, Expr pair)
+{
+    if (pair.type != VT_PAIR) return expr_none();
+    return exec->cars[pair.val_pair];
+}
+Expr get_tail(pExecutor exec, Expr pair)
+{
+    if (pair.type != VT_PAIR) return expr_none();
+    return exec->cdrs[pair.val_pair];
 }
 
 int get_len(pExecutor exec, Expr expr)

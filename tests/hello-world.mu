@@ -10,6 +10,11 @@
 (set x (+ x 2))
 (print x)
 
+(prints "<<< check special atoms >>>")
+(print '(, ,@ b ,a ,@a))
+(prints ''(1 2 3))
+(prints `(1 ,(+ 1 1) 3 ,@(cons 4 (cons 5 nil)) 6))
+
 (prints "<<< check lists >>>")
 (print (cons 'a (cons 1 nil)))
 (set make-tree

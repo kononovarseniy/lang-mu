@@ -50,6 +50,8 @@ struct Expr
 };
 
 Expr expr_none();
+int is_none(Expr expr);
+int is_equal(Expr a, Expr b);
 
 enum FunctionType
 {
@@ -91,6 +93,8 @@ struct Executor
     Expr nil;
     Expr t;
     Expr quote;
+    Expr comma;
+    Expr comma_atsign;
 };
 
 
@@ -112,6 +116,8 @@ size_t find_atom(pExecutor exec, char *name);
 size_t add_atom(pExecutor exec, char *name);
 size_t add_pair(pExecutor exec);
 
+Expr get_head(pExecutor exec, Expr pair);
+Expr get_tail(pExecutor exec, Expr pair);
 int get_len(pExecutor exec, Expr expr);
 Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);

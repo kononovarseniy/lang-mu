@@ -19,14 +19,21 @@ void scanner_error(const char *format, ...);
 
 %option noyywrap
 
+quote           "'"
+backquote       "`"
+comma           ","
+comma_atsign    ",@"
 
 digit       [0-9]
 hex_digit   [0-9a-f]
 oct_digit   [0-7]
 bin_digit   [0-1]
 
+    // Symbols / * , have spacial meaning use it carefully
+    // This symbols do not apear in named categories
+
 letter  [a-zA-Z]
-other   [_,.!?:;~@#$%^&+=|<>\\\-]
+other   [_.!?:;~@#$%^&+=|<>\\\-]
 
 letdig  {letter}|{digit}
 letoth  {letter}|{other}
@@ -47,8 +54,6 @@ str_char    ([^"\n\\]|"\\"[^\n])
 string      "\""{str_char}*"\""
 
 char        "\'"{str_char}"\'"
-
-quote       "'"
 
 %x slcomment mlcomment
 
@@ -83,7 +88,10 @@ quote       "'"
         return CHAR_LITERAL;
     }
     
-{quote}     { return QUOTE; }
+{quote}         { return QUOTE; }
+{backquote}     { return BACKQUOTE; }
+{comma}         { return COMMA; }
+{comma_atsign}  { return COMMA_ATSIGN; }
 
 {string}    { yylval.str_val = unescape_string(yytext + 1, yyleng - 2); return STR_LITERAL; }
 
