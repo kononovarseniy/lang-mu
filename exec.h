@@ -84,11 +84,21 @@ struct Function
     };
 };
 
+enum GCFlags
+{
+    GC_NONE = 0,
+    GC_USED = 1 << 0,
+    GC_REFERENCED = 1 << 1
+};
+
 struct Executor
 {
     size_t atomsCount;
     size_t pairsCount;
+
+    enum GCFlags *atomsFlags;
     char **atoms;
+    enum GCFlags *pairsFlags;
     Expr *cars;
     Expr *cdrs;
 
@@ -118,13 +128,16 @@ Expr exec_macroexpand(pExecutor exec, pContext context, pFunction macro, Expr *a
 
 size_t find_atom(pExecutor exec, char *name);
 size_t add_atom(pExecutor exec, char *name);
+void del_atom(pExecutor exec, size_t atom);
 size_t add_pair(pExecutor exec);
+void del_pair(pExecutor exec, size_t pair);
 
 Expr get_head(pExecutor exec, Expr pair);
 Expr get_tail(pExecutor exec, Expr pair);
 int get_len(pExecutor exec, Expr expr);
 Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);
+
 Expr make_atom(pExecutor exec, char *name);
 Expr make_pair(pExecutor exec, Expr car, Expr cdr);
 Expr make_list(pExecutor exec, Expr *arr, int len);

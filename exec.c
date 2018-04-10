@@ -48,12 +48,20 @@ pExecutor create_executor(void)
         perror("create_executor: `atoms` allocation failed");
         return NULL;
     }
+    enum GCFlags *atomsFlags = malloc(MAX_ATOMS * sizeof(enum GCFlags));
+    if (atomsFlags == NULL)
+    {
+        perror("create_executor: `atomsFlags` allocation failed");
+        free(atoms);
+        return NULL;
+    }
 
     Expr *cars = malloc(MAX_PAIRS * sizeof(Expr));
     if (cars == NULL)
     {
         perror("create_executor: `cars` allocation failed");
         free(atoms);
+        free(atomsFlags);
         return NULL;
     }
 
@@ -62,6 +70,17 @@ pExecutor create_executor(void)
     {
         perror("create_executor: `cdrs` allocation failed");
         free(atoms);
+        free(atomsFlags);
+        free(cars);
+        return NULL;
+    }
+    enum GCFlags *pairsFlags = malloc(MAX_PAIRS * sizeof(enum GCFlags));
+    if (pairsFlags == NULL)
+    {
+        perror("create_executor: `pairsFlags` allocation failed");
+        free(atoms);
+        free(atomsFlags);
+        free(cars);
         free(cdrs);
         return NULL;
     }
@@ -71,16 +90,25 @@ pExecutor create_executor(void)
     {
         perror("create_executor: memory allocation failed");
         free(atoms);
+        free(atomsFlags);
         free(cars);
         free(cdrs);
+        free(pairsFlags);
         return NULL;
     }
 
-    res->atomsCount = 0;
-    res->pairsCount = 0;
+    for (size_t i = 0; i < MAX_ATOMS; i++)
+        atomsFlags[i] = GC_NONE;
+    for (size_t i = 0; i < MAX_PAIRS; i++)
+        pairsFlags[i] = GC_NONE;
+
+    res->atomsCount = MAX_ATOMS;
+    res->pairsCount = MAX_PAIRS;
     res->atoms = atoms;
+    res->atomsFlags = atomsFlags;
     res->cars = cars;
     res->cdrs = cdrs;
+    res->pairsFlags = pairsFlags;
     return res;
 }
 void free_executor(pExecutor exec)
@@ -88,8 +116,10 @@ void free_executor(pExecutor exec)
     for (int i = 0; i < exec->atomsCount; i++)
         free((exec->atoms[i]));
     free(exec->atoms);
+    free(exec->atomsFlags);
     free(exec->cars);
     free(exec->cdrs);
+    free(exec->pairsFlags);
     free(exec);
 }
 
@@ -185,10 +215,7 @@ void exec_cleanup(pExecutor exec)
 
 Expr load_atom(pExecutor exec, pSTree item)
 {
-    Expr res;
-    res.type = VT_ATOM;
-    res.val_atom = add_atom(exec, item->name);
-    return res;
+    return make_atom(exec, item->name);
 }
 
 Expr load_int(pExecutor exec, pSTree item)
@@ -257,20 +284,7 @@ Expr exec_load_tree(pExecutor exec, pSTree tree)
     }
 
     // Make pair
-    size_t pair = add_pair(exec);
-    if (pair == EXPR_ERROR)
-    {
-        log("exec_load_tree: add_pair failed");
-        return expr_none();
-    }
-
-    exec->cars[pair] = item;
-    exec->cdrs[pair] = tail;
-
-    Expr res;
-    res.type = VT_PAIR;
-    res.val_pair = pair;
-    return res;
+    return make_pair(exec, item, tail);
 }
 
 Expr exec_builtin_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
@@ -482,72 +496,116 @@ Expr exec_macroexpand(pExecutor exec, pContext context, pFunction macro, Expr *a
         return exec_user_function(exec, macro, context, args, len, 1);
 }
 
-size_t find_atom(pExecutor exec, char *name)
+char *normalize_name(char *name)
 {
-    // Create name copy
     char *copy = strdup(name);
     if (copy == NULL)
     {
         perror("add_atom: strdup failed");
-        return EXPR_ERROR;
+        return NULL;
     }
     strtolower(copy);
-    // Search for existing atom with such name
+    return copy;
+}
+
+#define FIND_PLACE_SUCCESS 0
+#define FIND_PLACE_EXISTS 1
+#define FIND_PLACE_ERROR 2
+int find_place_for_atom(pExecutor exec, char *name, size_t *place)
+{
+    size_t free_pos = EXPR_ERROR;
     for (size_t i = 0; i < exec->atomsCount; i++)
     {
-        if (strcmp(copy, exec->atoms[i]) == 0)
+        if (exec->atomsFlags[i] & GC_USED)
         {
-            free(copy);
-            return i;
+            if (strcmp(name, exec->atoms[i]) == 0)
+            {
+                *place = i;
+                return FIND_PLACE_EXISTS;
+            }
+        }
+        else if (free_pos == EXPR_ERROR)
+        {
+            free_pos = i;
         }
     }
+    if (free_pos == EXPR_ERROR)
+        return FIND_PLACE_ERROR;
+    *place = free_pos;
+    return FIND_PLACE_SUCCESS;
+}
+
+int find_place_for_pair(pExecutor exec, size_t *place)
+{
+    for (size_t i = 0; i < exec->atomsCount; i++)
+    {
+        if (!(exec->pairsFlags[i] & GC_USED))
+        {
+            *place = i;
+            return FIND_PLACE_SUCCESS;
+        }
+    }
+    *place = EXPR_ERROR;
+    return FIND_PLACE_ERROR;
+}
+
+size_t find_atom(pExecutor exec, char *name)
+{
+    // Create name copy
+    char *copy = normalize_name(name);
+    size_t found;
+    int res = find_place_for_atom(exec, copy, &found);
     free(copy);
-    return EXPR_NOT_FOUND;
+    if (res != FIND_PLACE_EXISTS)
+        return EXPR_NOT_FOUND;
+    return found;
 }
 
 size_t add_atom(pExecutor exec, char *name)
 {
-    size_t found = find_atom(exec, name);
-    if (found == EXPR_ERROR)
-    {
-        log("add_atom: find_atom failed");
-        return EXPR_ERROR;
-    }
-    if (found != EXPR_NOT_FOUND)
-        return found;
-
     // Create name copy
-    char *copy = strdup(name);
-    if (copy == NULL)
+    char *copy = normalize_name(name);
+    size_t found;
+    int res = find_place_for_atom(exec, copy, &found);
+    if (res == FIND_PLACE_ERROR)
     {
-        perror("add_atom: strdup failed");
+        // not enough place
+        // TODO: call GC_collect. And try again
+        log("add_atom: out of memory");
+        free(copy);
         return EXPR_ERROR;
     }
-    strtolower(copy);
-    // Create atom!
-    if (exec->atomsCount == MAX_ATOMS)
+    if (res == FIND_PLACE_EXISTS)
     {
-        log("add_atom: limit exceeded");
-        return EXPR_ERROR;
+        free(copy);
+        return found;
     }
-    exec->atoms[exec->atomsCount] = copy;
 
-    size_t res = exec->atomsCount;
-    exec->atomsCount++;
-    return res;
+    exec->atomsFlags[found] = GC_USED;
+    exec->atoms[found] = copy;
+    return found;
+}
+void del_atom(pExecutor exec, size_t atom)
+{
+    exec->atomsFlags[atom] = GC_NONE;
+    free(exec->atoms[atom]);
 }
 
 size_t add_pair(pExecutor exec)
 {
-    if (exec->pairsCount == MAX_PAIRS)
+    size_t place;
+    int res = find_place_for_pair(exec, &place);
+    if (res == FIND_PLACE_ERROR)
     {
-        log("add_pair: limit exceeded");
+        log("add_pair: out of memory");
         return EXPR_ERROR;
     }
-
-    int res = exec->pairsCount;
-    exec->pairsCount++;
-    return res;
+    exec->pairsFlags[place] = GC_USED;
+    return place;
+}
+void del_pair(pExecutor exec, size_t pair)
+{
+    exec->pairsFlags[pair] = GC_NONE;
 }
 
 Expr get_head(pExecutor exec, Expr pair)
