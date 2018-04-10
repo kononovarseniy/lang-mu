@@ -68,10 +68,10 @@
 (setmacro defmacro (macro (name args &rest body)
     `(setmacro ,name (macro ,args ,@body))
 ))
-(print "123")
 (defmacro defun (name args &rest body)
     `(set ,name (lambda ,args ,@body))
 )
 (defun foo (a b &rest c) (+ a b))
 (prints "2 + 3 =" (foo 2 3 4 5 6))
+(print (macroexpand 'defun '(bar (a b &rest c) 1 2 3)))
 

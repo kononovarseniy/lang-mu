@@ -110,9 +110,11 @@ void exec_init(pExecutor exec, pContext context);
 void exec_cleanup(pExecutor exec);
 
 Expr exec_load_tree(pExecutor exec, pSTree tree);
+
 Expr exec_eval_array(pExecutor exec, pContext context, Expr *array, int len);
 Expr exec_eval_all(pExecutor exec, pContext context, Expr expr);
 Expr exec_eval(pExecutor exec, pContext context, Expr expr);
+Expr exec_macroexpand(pExecutor exec, pContext context, pFunction macro, Expr *args, int len);
 
 size_t find_atom(pExecutor exec, char *name);
 size_t add_atom(pExecutor exec, char *name);

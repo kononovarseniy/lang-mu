@@ -352,9 +352,6 @@ BUILTIN_FUNC(macro)
 
 BUILTIN_FUNC(setmacro)
 {
-    /*
-        (set a 1)
-    */
     if (argc != 2)
     {
         log("setmacro: wrong arguments syntax");
@@ -367,6 +364,11 @@ BUILTIN_FUNC(setmacro)
         exit(1);
     }
     Expr val = exec_eval(exec, callContext, args[1]);
+    if (val.type != VT_FUNC || val.val_func->type != FT_MACRO)
+    {
+        log("setmacro: argument is not a macro");
+        exit(1);
+    }
     if (context_set_macro(callContext, atom.val_atom, val) == MAP_FAILED)
     {
         log("setmacro: context_set_macro failed");
@@ -375,3 +377,74 @@ BUILTIN_FUNC(setmacro)
 
     return val;
 }
+
+BUILTIN_FUNC(getmacro)
+{
+    if (argc != 1)
+    {
+        log("getmacro: wrong arguments syntax");
+        exit(1);
+    }
+    Expr atom = args[0];
+    if (atom.type != VT_ATOM)
+    {
+        log("getmacro: wrong arguments syntax");
+        exit(1);
+    }
+    Expr res;
+    if (context_get_macro(callContext, atom.val_atom, &res) == MAP_FAILED)
+    {
+        log("getmacro: context_get_macro failed");
+        exit(1);
+    }
+
+    return res;
+}
+
+BUILTIN_FUNC(macroexpand)
+{
+    if (argc != 2)
+    {
+        log("macroexpand: wrong arguments count");
+        exit(1);
+    }
+    Expr name = exec_eval(exec, callContext, args[0]);
+    if (name.type != VT_ATOM)
+    {
+        log("macroexpand: wrong argument type");
+        exit(1);
+    }
+    Expr macro_args = exec_eval(exec, callContext, args[1]);
+    if (macro_args.type != VT_PAIR)
+    {
+        log("macroexpand: wrong argument type");
+        exit(1);
+    }
+    Expr expanded;
+    Expr success;
+    Expr macro;
+    if (context_get_macro(callContext, name.val_atom, &macro) == MAP_FAILED)
+    {
+        expanded = exec->nil;
+        success = exec->nil;
+    }
+    else
+    {
+        int len;
+        Expr *args_array = get_list(exec, macro_args, &len);
+        Expr expand_res = exec_macroexpand(exec, callContext, macro.val_func, args_array, len);
+        if (is_none(expand_res))
+        {
+            expanded = exec->nil;
+            success = exec->nil;
+        }
+        else
+        {
+            expanded = expand_res;
+            success = exec->t;
+        }
+        free(args_array);
+    }
+    return make_pair(exec, expanded, make_pair(exec, success, exec->nil));
+}
+

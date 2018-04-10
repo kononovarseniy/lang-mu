@@ -171,6 +171,8 @@ void exec_init(pExecutor exec, pContext context)
     register_function(exec, context, "backquote", backquote);
     register_function(exec, context, "macro", macro);
     register_function(exec, context, "setmacro", setmacro);
+    register_function(exec, context, "getmacro", getmacro);
+    register_function(exec, context, "macroexpand", macroexpand);
 
     Expr plus_func = register_function(exec, context, "plus", plus);
     context_bind(context, add_atom(exec, "+"), plus_func);
@@ -347,7 +349,7 @@ int user_function_bind_args(pExecutor exec, pContext execContext, pContext callC
     return 1;
 }
 
-Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
+Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc, int expand)
 {
     pUserFunction user = func->user;
     if (!check_args_count(user, argc))
@@ -385,7 +387,7 @@ Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Ex
     Expr res = exec_eval_all(exec, execContext, user->body);
     context_unlink(execContext);
     // Execute return
-    if (func->type == FT_MACRO)
+    if (func->type == FT_MACRO && !expand)
         res = exec_eval(exec, callContext, res);
 
     return res;
@@ -396,7 +398,7 @@ Expr exec_function(pExecutor exec, pContext callContext, pFunction func, Expr *a
     if (func->type == FT_BUILTIN)
         return exec_builtin_function(exec, func, callContext, args, argc);
     else if (func->type == FT_USER || func->type == FT_MACRO)
-        return exec_user_function(exec, func, callContext, args, argc);
+        return exec_user_function(exec, func, callContext, args, argc, 0);
     else
     {
         log("exec_function: invalid_function");
@@ -471,6 +473,13 @@ Expr exec_eval_all(pExecutor exec, pContext context, Expr expr)
     Expr res = exec_eval_array(exec, context, list, len);
     free(list);
     return res;
+}
+Expr exec_macroexpand(pExecutor exec, pContext context, pFunction macro, Expr *args, int len)
+{
+    if (macro->type != FT_MACRO)
+        return expr_none();
+    else
+        return exec_user_function(exec, macro, context, args, len, 1);
 }
 
 size_t find_atom(pExecutor exec, char *name)
