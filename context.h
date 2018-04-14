@@ -2,11 +2,10 @@
 #define CONTEXT_H_INCLUDED
 
 #include "map.h"
-
-typedef struct Context Context, *pContext;
-
-// exec.h uses type `Context` so it must be included here
 #include "exec.h"
+
+typedef struct Expr Expr; // Defined in exec.h
+typedef struct Context Context, *pContext;
 
 struct Context
 {

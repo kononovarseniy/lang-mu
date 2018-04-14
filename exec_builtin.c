@@ -148,9 +148,10 @@ Expr lambda_impl(pExecutor exec, pContext callContext, Expr *args, int argc, enu
     /*
         (lambda (ar gu me nts) body)
     */
+    char *caller_name = type == FT_USER ? "lambda" : "macro";
     if (argc < 2 || !is_list(exec, args[0]))
     {
-        logf("%s: wrong arguments", type == FT_USER ? "lambda" : "macro");
+        logf("%s: wrong arguments", caller_name);
         exit(1);
     }
     int f_argc;
@@ -158,15 +159,22 @@ Expr lambda_impl(pExecutor exec, pContext callContext, Expr *args, int argc, enu
     pFunction func = create_lambda(exec, callContext, f_args, f_argc, args + 1, argc - 1, type);
     if (func == NULL)
     {
-        logf("%s: create_lambda failed", type == FT_USER ? "lambda" : "macro");
+        logf("%s: create_lambda failed", caller_name);
         exit(1);
     }
 
     Expr res;
-    res.type = VT_FUNC;
+    res.type = VT_FUNC_VAL;
     res.val_func = func;
 
-    return res;
+    Expr ptr = gc_register(exec->heap, res);
+    if (is_none(ptr))
+    {
+        logf("%s: gc_register failed", caller_name);
+        exit(1);
+    }
+
+    return ptr;
 }
 
 BUILTIN_FUNC(lambda)
@@ -364,7 +372,7 @@ BUILTIN_FUNC(setmacro)
         exit(1);
     }
     Expr val = exec_eval(exec, callContext, args[1]);
-    if (val.type != VT_FUNC || val.val_func->type != FT_MACRO)
+    if (val.type != VT_FUNC_PTR || dereference(val).val_func->type != FT_MACRO)
     {
         log("setmacro: argument is not a macro");
         exit(1);
@@ -430,6 +438,7 @@ BUILTIN_FUNC(macroexpand)
     }
     else
     {
+        macro = dereference(macro);
         int len;
         Expr *args_array = get_list(exec, macro_args, &len);
         Expr expand_res = exec_macroexpand(exec, callContext, macro.val_func, args_array, len);

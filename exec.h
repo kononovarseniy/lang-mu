@@ -4,111 +4,17 @@
 #include <stdlib.h>
 #include <limits.h>
 #include "stree.h"
+#include "exec_types.h"
+#include "gc.h"
 
 #define EXPR_ERROR INT_MAX
 #define EXPR_NOT_FOUND (INT_MAX - 1)
 #define MAX_ATOMS 102400
 #define MAX_PAIRS 102400
 
-enum VarType;
-enum FunctionType;
-typedef struct Expr Expr;
-typedef struct Function Function, *pFunction;
-typedef struct UserFunction UserFunction, *pUserFunction;
-typedef struct Executor Executor, *pExecutor;
-
-// context.h uses type `Expr` so it must be included here
-#include "context.h"
-
-#define BUILTIN_FUNC(NAME) Expr NAME(pExecutor exec, pContext defContext, pContext callContext, Expr *args, int argc)
-typedef BUILTIN_FUNC((*pBuiltinFunction));
-
-enum ValueType
-{
-    VT_NONE,
-    VT_ATOM,
-    VT_PAIR,
-    VT_FUNC,
-    VT_INT,
-    VT_CHAR,
-    VT_STRING
-};
-
-struct Expr
-{
-    enum ValueType type;
-    union
-    {
-        size_t val_pair;
-        size_t val_atom;
-        pFunction val_func;
-        long val_int;
-        char val_char;
-        char *val_str;
-
-    };
-};
-
 Expr expr_none();
 int is_none(Expr expr);
 int is_equal(Expr a, Expr b);
-
-enum FunctionType
-{
-    FT_NONE,
-    FT_BUILTIN,
-    FT_USER,
-    FT_MACRO
-};
-
-struct UserFunction
-{
-    Expr *args;
-    int argc;
-    Expr *opt;
-    Expr *def;
-    int optc;
-    Expr rest;
-    Expr body;
-};
-
-struct Function
-{
-    enum FunctionType type;
-    pContext context;
-    union
-    {
-        pBuiltinFunction builtin;
-        pUserFunction user;
-        pUserFunction macro;
-    };
-};
-
-enum GCFlags
-{
-    GC_NONE = 0,
-    GC_USED = 1 << 0,
-    GC_REFERENCED = 1 << 1
-};
-
-struct Executor
-{
-    size_t atomsCount;
-    size_t pairsCount;
-
-    enum GCFlags *atomsFlags;
-    char **atoms;
-    enum GCFlags *pairsFlags;
-    Expr *cars;
-    Expr *cdrs;
-
-    Expr nil;
-    Expr t;
-    Expr quote;
-    Expr comma;
-    Expr comma_atsign;
-};
-
 
 pExecutor create_executor(void);
 void free_executor(pExecutor exec);
@@ -132,6 +38,7 @@ void del_atom(pExecutor exec, size_t atom);
 size_t add_pair(pExecutor exec);
 void del_pair(pExecutor exec, size_t pair);
 
+Expr dereference(Expr ptr);
 Expr get_head(pExecutor exec, Expr pair);
 Expr get_tail(pExecutor exec, Expr pair);
 int get_len(pExecutor exec, Expr expr);

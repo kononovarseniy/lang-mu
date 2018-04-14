@@ -21,6 +21,11 @@ int is_none(Expr expr)
 int is_equal(Expr a, Expr b)
 {
     if (a.type != b.type) return 0;
+    if (a.type & VT_POINTER)
+    {
+        a = dereference(a);
+        b = dereference(b);
+    }
     switch (a.type)
     {
     case VT_ATOM:
@@ -29,9 +34,8 @@ int is_equal(Expr a, Expr b)
         return a.val_char == b.val_char;
     case VT_INT:
         return a.val_int == b.val_int;
-    case VT_STRING:
+    case VT_STRING_VAL:
         return strcmp(a.val_str, b.val_str) == 0;
-    case VT_FUNC:
     case VT_PAIR:
     case VT_NONE:
     default:
@@ -42,58 +46,62 @@ int is_equal(Expr a, Expr b)
 
 pExecutor create_executor(void)
 {
-    char **atoms = malloc(MAX_ATOMS * sizeof(char*));
+    char **atoms                = malloc(MAX_ATOMS * sizeof(char*));
+    enum GCFlags *atomsFlags    = malloc(MAX_ATOMS * sizeof(enum GCFlags));
+    Expr *cars                  = malloc(MAX_PAIRS * sizeof(Expr));
+    Expr *cdrs                  = malloc(MAX_PAIRS * sizeof(Expr));
+    enum GCFlags *pairsFlags    = malloc(MAX_PAIRS * sizeof(enum GCFlags));
+
+    pHeap heap = create_heap();
+
+    pExecutor res = malloc(sizeof(Executor));
+
+    int success = 1;
     if (atoms == NULL)
     {
         perror("create_executor: `atoms` allocation failed");
-        return NULL;
+        success = 0;
     }
-    enum GCFlags *atomsFlags = malloc(MAX_ATOMS * sizeof(enum GCFlags));
     if (atomsFlags == NULL)
     {
         perror("create_executor: `atomsFlags` allocation failed");
-        free(atoms);
-        return NULL;
+        success = 0;
     }
-
-    Expr *cars = malloc(MAX_PAIRS * sizeof(Expr));
     if (cars == NULL)
     {
         perror("create_executor: `cars` allocation failed");
-        free(atoms);
-        free(atomsFlags);
-        return NULL;
+        success = 0;
     }
-
-    Expr *cdrs = malloc(MAX_PAIRS * sizeof(Expr));
     if (cdrs == NULL)
     {
         perror("create_executor: `cdrs` allocation failed");
-        free(atoms);
-        free(atomsFlags);
-        free(cars);
-        return NULL;
+        success = 0;
     }
-    enum GCFlags *pairsFlags = malloc(MAX_PAIRS * sizeof(enum GCFlags));
     if (pairsFlags == NULL)
     {
         perror("create_executor: `pairsFlags` allocation failed");
-        free(atoms);
-        free(atomsFlags);
-        free(cars);
-        free(cdrs);
-        return NULL;
+        success = 0;
     }
-
-    pExecutor res = malloc(sizeof(Executor));
+    if (heap == NULL)
+    {
+        log("create_executor: create_heap failed");
+        success = 0;
+    }
     if (res == NULL)
     {
         perror("create_executor: memory allocation failed");
+        success = 0;
+    }
+
+    if (!success)
+    {
         free(atoms);
         free(atomsFlags);
         free(cars);
         free(cdrs);
         free(pairsFlags);
+        free_heap(heap);
+        free(res);
         return NULL;
     }
 
@@ -109,6 +117,8 @@ pExecutor create_executor(void)
     res->cars = cars;
     res->cdrs = cdrs;
     res->pairsFlags = pairsFlags;
+    res->heap = heap;
+
     return res;
 }
 void free_executor(pExecutor exec)
@@ -120,6 +130,7 @@ void free_executor(pExecutor exec)
     free(exec->cars);
     free(exec->cdrs);
     free(exec->pairsFlags);
+    free_heap(exec->heap);
     free(exec);
 }
 
@@ -138,15 +149,10 @@ Expr register_atom(pExecutor exec, pContext context, char *name, int bind)
 
     if (bind && context_bind(context, atom, res) == MAP_FAILED)
     {
-        log("self_bind_atom: context_bind failed");
+        log("register_atom: context_bind failed");
         exit(1);
     }
     return res;
-}
-
-int self_bind_atom(pContext context, Expr atom)
-{
-    return 1;
 }
 
 Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFunction func)
@@ -164,17 +170,24 @@ Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFun
     funcval->builtin = func;
     context_link(context);
 
-    Expr expr;
-    expr.type = VT_FUNC;
-    expr.val_func = funcval;
+    Expr value;
+    value.type = VT_FUNC_VAL;
+    value.val_func = funcval;
 
-    if (context_bind(context, atom, expr) == MAP_FAILED)
+    Expr ptr = gc_register(exec->heap, value);
+    if (is_none(ptr))
+    {
+        log("register_function: gc_register failed");
+        exit(1);
+    }
+
+    if (context_bind(context, atom, ptr) == MAP_FAILED)
     {
         log("register_function: context_bind failed");
         exit(1);
     }
 
-    return expr;
+    return ptr;
 }
 
 void exec_init(pExecutor exec, pContext context)
@@ -236,11 +249,17 @@ Expr load_char(pExecutor exec, pSTree item)
 
 Expr load_string(pExecutor exec, pSTree item)
 {
-    // TODO: register string somewhere to be able to free it
     Expr res;
-    res.type = VT_STRING;
+    res.type = VT_STRING_VAL;
     res.val_str = item->str_val;
-    return res;
+
+    Expr ptr = gc_register(exec->heap, res);
+    if (is_none(ptr))
+    {
+        log("load_string: gc_register failed");
+        return expr_none();
+    }
+    return ptr;
 }
 
 Expr load_item(pExecutor exec, pSTree item)
@@ -269,7 +288,7 @@ Expr exec_load_tree(pExecutor exec, pSTree tree)
 
     // Load item
     Expr item = load_item(exec, tree);
-    if (item.type == VT_NONE)
+    if (is_none(item))
     {
         log("exec_load_tree: item loading failed");
         return expr_none();
@@ -277,7 +296,7 @@ Expr exec_load_tree(pExecutor exec, pSTree tree)
 
     // Load tail
     Expr tail = exec_load_tree(exec, tree->next);
-    if (tail.type == VT_NONE)
+    if (is_none(tail))
     {
         log("exec_load_tree: tail loading failed");
         return expr_none();
@@ -428,11 +447,15 @@ Expr get_function(pExecutor exec, pContext context, Expr list_head)
         Expr macro;
         if (context_get_macro(context, list_head.val_atom, &macro) == MAP_SUCCESS)
         {
-            return macro;
+            return dereference(macro);
         }
     }
     Expr func = exec_eval(exec, context, list_head);
-    if (func.type != VT_FUNC || func.val_func->type == FT_MACRO)
+    if (func.type & VT_POINTER)
+        func = dereference(func);
+
+    // if value is macro it is unregistered macro.
+    if (func.type != VT_FUNC_VAL || func.val_func->type == FT_MACRO)
     {
         return expr_none();
     }
@@ -606,6 +629,13 @@ size_t add_pair(pExecutor exec)
 void del_pair(pExecutor exec, size_t pair)
 {
     exec->pairsFlags[pair] = GC_NONE;
+}
+
+Expr dereference(Expr ptr)
+{
+    if (!(ptr.type & VT_POINTER))
+        return expr_none();
+    return ptr.val_ptr->value;
 }
 
 Expr get_head(pExecutor exec, Expr pair)
@@ -928,4 +958,3 @@ void free_user_function(pUserFunction func)
     free(func->def);
     free(func);
 }
-
