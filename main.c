@@ -3,6 +3,7 @@
 
 #include "parser.h"
 #include "exec.h"
+#include "load.h"
 #include "print.h"
 
 pSTree parse_file(char *name)
@@ -26,7 +27,7 @@ Expr execute_program(pSTree code_tree)
     pContext context = create_context();
     exec_init(exec, context);
 
-    Expr expr = exec_load_tree(exec, parsing_result);
+    Expr expr = load_parsed_tree(exec, parsing_result);
 
     printf("\n====================\n");
     printf("Code loaded:");

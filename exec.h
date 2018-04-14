@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <limits.h>
-#include "stree.h"
 #include "exec_types.h"
 #include "gc.h"
 
@@ -25,8 +24,6 @@ Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFun
 void exec_init(pExecutor exec, pContext context);
 void exec_cleanup(pExecutor exec);
 
-Expr exec_load_tree(pExecutor exec, pSTree tree);
-
 Expr exec_eval_array(pExecutor exec, pContext context, Expr *array, int len);
 Expr exec_eval_all(pExecutor exec, pContext context, Expr expr);
 Expr exec_eval(pExecutor exec, pContext context, Expr expr);
@@ -46,6 +43,12 @@ Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);
 
 Expr make_atom(pExecutor exec, char *name);
+Expr make_int(pExecutor exec, long value);
+Expr make_char(pExecutor exec, char value);
+Expr make_string(pExecutor exec, char *value);
+Expr make_function(pExecutor exec, pFunction value);
+Expr make_builtin_function(pExecutor exec, pBuiltinFunction func, pContext context);
+Expr make_user_function(pExecutor exec, pUserFunction func, pContext context, enum FunctionType type);
 Expr make_pair(pExecutor exec, Expr car, Expr cdr);
 Expr make_list(pExecutor exec, Expr *arr, int len);
 

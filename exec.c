@@ -136,18 +136,14 @@ void free_executor(pExecutor exec)
 
 Expr register_atom(pExecutor exec, pContext context, char *name, int bind)
 {
-    size_t atom = add_atom(exec, name);
-    if (atom == EXPR_ERROR)
+    Expr res = make_atom(exec, name);
+    if (is_none(res))
     {
-        log("register_atom: add_atom failed");
+        log("register_atom: make_atom failed");
         exit(1);
     }
 
-    Expr res;
-    res.type = VT_ATOM;
-    res.val_atom = atom;
-
-    if (bind && context_bind(context, atom, res) == MAP_FAILED)
+    if (bind && context_bind(context, res.val_atom, res) == MAP_FAILED)
     {
         log("register_atom: context_bind failed");
         exit(1);
@@ -159,35 +155,20 @@ Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFun
 {
     size_t atom = add_atom(exec, name);
 
-    pFunction funcval = create_function();
-    if (funcval == NULL)
+    Expr res = make_builtin_function(exec, func, context);
+    if (is_none(res))
     {
-        log("register_function: create_function failed");
-        exit(1);
-    }
-    funcval->type = FT_BUILTIN;
-    funcval->context = context;
-    funcval->builtin = func;
-    context_link(context);
-
-    Expr value;
-    value.type = VT_FUNC_VAL;
-    value.val_func = funcval;
-
-    Expr ptr = gc_register(exec->heap, value);
-    if (is_none(ptr))
-    {
-        log("register_function: gc_register failed");
+        log("register_function: make_builtin_function failed");
         exit(1);
     }
 
-    if (context_bind(context, atom, ptr) == MAP_FAILED)
+    if (context_bind(context, atom, res) == MAP_FAILED)
     {
         log("register_function: context_bind failed");
         exit(1);
     }
 
-    return ptr;
+    return res;
 }
 
 void exec_init(pExecutor exec, pContext context)
@@ -224,86 +205,6 @@ void exec_init(pExecutor exec, pContext context)
 void exec_cleanup(pExecutor exec)
 {
     // TODO: implement exec_cleanup
-}
-
-Expr load_atom(pExecutor exec, pSTree item)
-{
-    return make_atom(exec, item->name);
-}
-
-Expr load_int(pExecutor exec, pSTree item)
-{
-    Expr res;
-    res.type = VT_INT;
-    res.val_int = item->int_val;
-    return res;
-}
-
-Expr load_char(pExecutor exec, pSTree item)
-{
-    Expr res;
-    res.type = VT_CHAR;
-    res.val_char = item->char_val;
-    return res;
-}
-
-Expr load_string(pExecutor exec, pSTree item)
-{
-    Expr res;
-    res.type = VT_STRING_VAL;
-    res.val_str = item->str_val;
-
-    Expr ptr = gc_register(exec->heap, res);
-    if (is_none(ptr))
-    {
-        log("load_string: gc_register failed");
-        return expr_none();
-    }
-    return ptr;
-}
-
-Expr load_item(pExecutor exec, pSTree item)
-{
-    switch (item->type)
-    {
-    case NODE_LIST:
-        return exec_load_tree(exec, item->child);
-    case NODE_NAME:
-        return load_atom(exec, item);
-    case NODE_INT:
-        return load_int(exec, item);
-    case NODE_CHAR:
-        return load_char(exec, item);
-    case NODE_STR:
-        return load_string(exec, item);
-    default:
-        log("load_item: unknown node type");
-        return expr_none();
-    }
-}
-
-Expr exec_load_tree(pExecutor exec, pSTree tree)
-{
-    if (tree == NULL) return exec->nil;
-
-    // Load item
-    Expr item = load_item(exec, tree);
-    if (is_none(item))
-    {
-        log("exec_load_tree: item loading failed");
-        return expr_none();
-    }
-
-    // Load tail
-    Expr tail = exec_load_tree(exec, tree->next);
-    if (is_none(tail))
-    {
-        log("exec_load_tree: tail loading failed");
-        return expr_none();
-    }
-
-    // Make pair
-    return make_pair(exec, item, tail);
 }
 
 Expr exec_builtin_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
@@ -708,6 +609,98 @@ Expr make_atom(pExecutor exec, char *name)
     res.val_atom = atom;
     return res;
 }
+Expr make_int(pExecutor exec, long value)
+{
+    Expr res;
+    res.type = VT_INT;
+    res.val_int = value;
+    return res;
+}
+Expr make_char(pExecutor exec, char value)
+{
+    Expr res;
+    res.type = VT_CHAR;
+    res.val_char = value;
+    return res;
+}
+Expr make_string(pExecutor exec, char *value)
+{
+    char *copy = strdup(value);
+    if (copy == NULL)
+    {
+        perror("make_string: strdup failed");
+        return expr_none();
+    }
+
+    Expr res;
+    res.type = VT_STRING_VAL;
+    res.val_str = copy;
+
+    Expr ptr = gc_register(exec->heap, res);
+    if (is_none(ptr))
+    {
+        log("make_string: gc_register failed");
+        free(copy);
+        return expr_none();
+    }
+    return ptr;
+}
+Expr make_function(pExecutor exec, pFunction value)
+{
+    Expr res;
+    res.type = VT_FUNC_VAL;
+    res.val_func = value;
+
+    Expr ptr = gc_register(exec->heap, res);
+    if (is_none(ptr))
+    {
+        log("make_function failed");
+        return expr_none();
+    }
+    return ptr;
+}
+Expr make_builtin_function(pExecutor exec, pBuiltinFunction func, pContext context)
+{
+    pFunction funcval = create_function();
+    if (funcval == NULL)
+    {
+        log("make_builtin_function: create_function failed");
+        return expr_none();
+    }
+    funcval->type = FT_BUILTIN;
+    funcval->context = context;
+    funcval->builtin = func;
+    context_link(context);
+
+    Expr res = make_function(exec, funcval);
+    if (is_none(res))
+    {
+        log("make_builtin_function: make_function failed");
+        return expr_none();
+    }
+    return res;
+}
+Expr make_user_function(pExecutor exec, pUserFunction func, pContext context, enum FunctionType type)
+{
+    pFunction funcval = create_function();
+    if (funcval == NULL)
+    {
+        log("make_user_function: create_function failed");
+        return expr_none();
+    }
+    funcval->type = type;
+    funcval->context = context;
+    funcval->user = func;
+    context_link(context);
+
+    Expr res = make_function(exec, funcval);
+    if (is_none(res))
+    {
+        log("make_user_function: make_function failed");
+        return expr_none();
+    }
+    return res;
+}
 
 Expr make_pair(pExecutor exec, Expr car, Expr cdr)
 {
@@ -749,164 +742,6 @@ int is_true(pExecutor exec, Expr expr)
         (expr.type == VT_NONE))
         return 0;
     return 1;
-}
-
-int scan_arguments(pExecutor exec, Expr *args, int argc, int *opt_pos, int *rest_pos)
-{
-    Expr opt_flag = make_atom(exec, "&optional");
-    Expr rest_flag = make_atom(exec, "&rest");
-
-    int opt = -1;
-    int rest = -1;
-
-    for (int i = 0; i < argc; i++)
-    {
-        if (args[i].type == VT_ATOM)
-        {
-            if (args[i].val_atom == opt_flag.val_atom)
-            {
-                if (opt == -1 && rest == -1)
-                    opt = i;
-                else
-                    return 0;
-            }
-            else if (args[i].val_atom == rest_flag.val_atom)
-            {
-                if (rest == -1)
-                    rest = i;
-                else
-                    return 0;
-            }
-        }
-        else if (opt != -1 && rest == -1) // optional section
-        {
-            int len;
-            Expr *list = get_list(exec, args[i], &len);
-            int good = len == 2 && list[0].type == VT_ATOM;
-            free(list);
-            if (!good)
-                return 0;
-        }
-        else
-            return 0;
-    }
-    if (rest == -1)
-        rest = argc;
-    if (opt == -1)
-        opt = rest;
-
-    *opt_pos = opt;
-    *rest_pos = rest;
-    return 1;
-}
-
-void parse_opt_arg(pExecutor exec, Expr expr, Expr *arg, Expr *def)
-{
-    if (expr.type == VT_ATOM)
-    {
-        *arg = expr;
-        *def = exec->nil;
-    }
-    else // VT_PAIR
-    {
-        int len;
-        Expr *list = get_list(exec, expr, &len);
-        *arg = list[0];
-        *def = list[1];
-        free(list);
-    }
-}
-
-int parse_arguments(pExecutor exec, pUserFunction func, Expr *args, int argc)
-{
-    int opt_pos, rest_pos;
-    if (!scan_arguments(exec, args, argc, &opt_pos, &rest_pos))
-        return 0;
-
-    int req_len = opt_pos;
-    int opt_len = rest_pos - opt_pos - 1;
-    if (opt_len < 0) opt_len = 0;
-    int rest_len = argc - rest_pos;
-
-    Expr *req, *opt, *def, rest;
-
-    req = malloc(req_len * sizeof(Expr));
-    if (req == NULL)
-    {
-        log("parse_arguments: malloc failed");
-        return 0;
-    }
-    opt = malloc(opt_len * sizeof(Expr));
-    if (opt == NULL)
-    {
-        log("parse_arguments: malloc failed");
-        free(req);
-        return 0;
-    }
-    def = malloc(opt_len * sizeof(Expr));
-    if (def == NULL)
-    {
-        log("parse_arguments: malloc failed");
-        free(req);
-        free(opt);
-        return 0;
-    }
-
-    for (int i = 0; i < req_len; i++)
-        req[i] = args[i];
-    for (int i = 0; i < opt_len; i++)
-        parse_opt_arg(exec, args[opt_pos + 1 + i], opt + i, def + i);
-    if (rest_len != 0)
-        rest = args[rest_pos + 1];
-    else
-        rest = expr_none();
-
-    func->args = req;
-    func->argc = req_len;
-    func->opt = opt;
-    func->def = def;
-    func->optc = opt_len;
-    func->rest = rest;
-
-    return 1;
-}
-
-pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len, enum FunctionType type)
-{
-    Expr bodyExpr = make_list(exec, body, len);
-    if (bodyExpr.type == VT_NONE)
-    {
-        log("create_lambda: make_list failed");
-        return NULL;
-    }
-
-    pUserFunction user = create_user_function();
-    if (user == NULL)
-    {
-        log("create_lambda: create_user_function failed");
-        return NULL;
-    }
-    if (!parse_arguments(exec, user, args, argc))
-    {
-        log("create_lambda: parse_arguments failed");
-        free(user);
-        return NULL;
-    }
-    user->body = bodyExpr;
-
-    pFunction func = create_function();
-    if (func == NULL)
-    {
-        log("create_lambda: create_function failed");
-        free_user_function(user); // this will also free argsCopy
-        return NULL;
-    }
-    func->type = type;
-    func->context = defContext;
-    func->user = user;
-    context_link(defContext);
-
-    return func;
 }
 
 // struct Function functions
