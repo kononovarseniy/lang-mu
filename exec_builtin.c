@@ -42,7 +42,7 @@ BUILTIN_FUNC(setmacro)
         exit(1);
     }
     Expr val = exec_eval(exec, callContext, args[1]);
-    if (val.type != VT_FUNC_PTR || dereference(val).val_func->type != FT_MACRO)
+    if (val.type != VT_FUNC_PTR || dereference(val).val_func->type != FT_USER_MACRO)
     {
         log("setmacro: argument is not a macro");
         exit(1);
@@ -474,7 +474,7 @@ BUILTIN_FUNC(lambda)
 
 BUILTIN_FUNC(macro)
 {
-    return lambda_impl(exec, callContext, args, argc, FT_MACRO);
+    return lambda_impl(exec, callContext, args, argc, FT_USER_MACRO);
 }
 
 BUILTIN_FUNC(cond)

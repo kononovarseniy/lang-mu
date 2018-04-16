@@ -4,15 +4,29 @@
 #include "map.h"
 #include "exec.h"
 
-typedef struct Expr Expr; // Defined in exec.h
+typedef struct Expr Expr; // Defined in exec_types.h
 typedef struct Context Context, *pContext;
+typedef struct ContextStack ContextStack, *pContextStack;
+typedef struct ContextStackFrame ContextStackFrame, *pContextStackFrame;
 
 struct Context
 {
+    int gc_index;
     int links;
     pContext base;
     pMap bindings;
     pMap macros;
+};
+
+struct ContextStack
+{
+    pContextStackFrame head;
+};
+
+struct ContextStackFrame
+{
+    pContext context;
+    pContextStackFrame next;
 };
 
 pContext create_context(void);
@@ -27,5 +41,11 @@ int context_get_macro(pContext context, size_t key, Expr *value);
 
 void context_link(pContext context);
 void context_unlink(pContext context);
+
+pContextStack create_context_stack();
+void free_context_stack(pContextStack stack);
+
+int context_stack_push(pContextStack stack, pContext context);
+int context_stack_pop(pContextStack stack);
 
 #endif // CONTEXT_H_INCLUDED

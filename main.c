@@ -5,6 +5,7 @@
 #include "exec.h"
 #include "load.h"
 #include "print.h"
+#include "log.h"
 
 pSTree parse_file(char *name)
 {
@@ -24,31 +25,27 @@ pSTree parse_file(char *name)
 Expr execute_program(pSTree code_tree)
 {
     pExecutor exec = create_executor();
-    pContext context = create_context();
-    exec_init(exec, context);
+    exec_init(exec);
 
-    Expr expr = load_parsed_tree(exec, parsing_result);
+    Expr code = load_parsed_tree(exec, parsing_result);
+    exec_set_code(exec, code);
 
     printf("\n====================\n");
     printf("Code loaded:");
     printf("\n====================\n");
-    print_expression(stdout, exec, expr, PF_DEFAULT, 0);
+    print_expression(stdout, exec, code, PF_DEFAULT, 0);
 
     printf("\n====================\n");
     printf("Program output:");
     printf("\n====================\n");
-    Expr result = exec_eval_all(exec, context, expr);
+    Expr result = exec_execute(exec);
 
     printf("\n====================\n");
     printf("Program returned:");
     printf("\n====================\n");
     print_expression(stdout, exec, result, PF_DEFAULT, 0);
 
-    context_unlink(context);
-
-    exec_cleanup(exec);
     free_executor(exec);
-    free_context(context);
 
     return result;
 }

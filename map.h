@@ -20,5 +20,7 @@ void free_map(pMap map);
 
 int map_set(pMap map, size_t key, void *value);
 int map_get(pMap map, size_t key, void *value);
+size_t *map_get_keys(pMap map);
+void *map_get_values(pMap map);
 
 #endif // MAP_H_INCLUDED

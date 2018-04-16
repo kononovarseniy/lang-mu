@@ -4,6 +4,7 @@
 #include "context.h"
 
 typedef struct Context Context, *pContext; // Defined in context.h
+typedef struct ContextStack ContextStack, *pContextStack; // Defined in context.h
 
 enum ValueType;
 typedef struct Expr Expr;
@@ -56,7 +57,8 @@ enum GCFlags
 {
     GC_NONE = 0,
     GC_USED = 1 << 0,
-    GC_REFERENCED = 1 << 1
+    GC_REFERENCED = 1 << 1,
+    GC_PROTECTED = 1 << 2
 };
 
 struct GCPointer
@@ -76,18 +78,18 @@ enum FunctionType
     FT_NONE,
     FT_BUILTIN,
     FT_USER,
-    FT_MACRO
+    FT_USER_MACRO
 };
 
 struct Function
 {
     enum FunctionType type;
+    int gc_index;
     pContext context;
     union
     {
         pBuiltinFunction builtin;
         pUserFunction user;
-        pUserFunction macro;
     };
 };
 
@@ -104,6 +106,11 @@ struct UserFunction
 
 struct Executor
 {
+    int gc_index;
+    pContextStack stack;
+    pContext global;
+    Expr code;
+
     size_t atomsCount;
     size_t pairsCount;
 

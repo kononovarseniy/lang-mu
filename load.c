@@ -63,5 +63,11 @@ Expr load_parsed_tree(pExecutor exec, pSTree tree)
     }
 
     // Make pair
-    return make_pair(exec, head, tail);
+    Expr pair = make_pair(exec, head, tail);
+    if (is_none(pair))
+    {
+        log("load_parsed_tree: make_pair failed");
+        return expr_none();
+    }
+    return pair;
 }

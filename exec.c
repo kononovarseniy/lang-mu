@@ -43,6 +43,14 @@ int is_equal(Expr a, Expr b)
         exit(1);
     }
 }
+int is_true(pExecutor exec, Expr expr)
+{
+    if ((expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom) ||
+        (expr.type == VT_INT && expr.val_int == 0) ||
+        (expr.type == VT_NONE))
+        return 0;
+    return 1;
+}
 
 pExecutor create_executor(void)
 {
@@ -52,7 +60,8 @@ pExecutor create_executor(void)
     Expr *cdrs                  = malloc(MAX_PAIRS * sizeof(Expr));
     enum GCFlags *pairsFlags    = malloc(MAX_PAIRS * sizeof(enum GCFlags));
 
-    pHeap heap = create_heap();
+    pHeap heap          = create_heap();
+    pContextStack stack = create_context_stack();
 
     pExecutor res = malloc(sizeof(Executor));
 
@@ -87,6 +96,11 @@ pExecutor create_executor(void)
         log("create_executor: create_heap failed");
         success = 0;
     }
+    if (stack == NULL)
+    {
+        log("create_executor: create_context_stack failed");
+        success = 0;
+    }
     if (res == NULL)
     {
         perror("create_executor: memory allocation failed");
@@ -101,6 +115,7 @@ pExecutor create_executor(void)
         free(cdrs);
         free(pairsFlags);
         free_heap(heap);
+        free_context_stack(stack);
         free(res);
         return NULL;
     }
@@ -118,11 +133,18 @@ pExecutor create_executor(void)
     res->cdrs = cdrs;
     res->pairsFlags = pairsFlags;
     res->heap = heap;
+    res->stack = stack;
+    res->global = NULL;
+
+    res->code = expr_none();
+    res->gc_index = 0;
 
     return res;
 }
 void free_executor(pExecutor exec)
 {
+    context_unlink(exec->global);
+
     for (int i = 0; i < exec->atomsCount; i++)
         free((exec->atoms[i]));
     free(exec->atoms);
@@ -131,6 +153,7 @@ void free_executor(pExecutor exec)
     free(exec->cdrs);
     free(exec->pairsFlags);
     free_heap(exec->heap);
+    free_context_stack(exec->stack);
     free(exec);
 }
 
@@ -171,40 +194,59 @@ Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFun
     return res;
 }
 
-void exec_init(pExecutor exec, pContext context)
+void exec_init(pExecutor exec)
 {
+    // Create global
+    pContext global = create_context();
+    if (global == NULL)
+    {
+        log("exec_init: create_context failed");
+        exit(1);
+    }
+    context_stack_push(exec->stack, global);
+    exec->global = global;
+
+
     // Create minimal set of atoms
-    exec->nil = register_atom(exec, context, "nil", 1);
-    exec->t = register_atom(exec, context, "t", 1);
-    exec->quote = register_atom(exec, context, "quote", 0);
-    exec->comma = register_atom(exec, context, "#:comma", 0);
-    exec->comma_atsign = register_atom(exec, context, "#:comma_atsign", 0);
+    exec->nil = register_atom(exec, global, "nil", 1);
+    exec->t = register_atom(exec, global, "t", 1);
+    exec->quote = register_atom(exec, global, "quote", 0);
+    exec->comma = register_atom(exec, global, "#:comma", 0);
+    exec->comma_atsign = register_atom(exec, global, "#:comma_atsign", 0);
+
+    // Set code to empty list
+    exec->code = exec->nil;
 
     // Register built-in function
-    register_function(exec, context, "set", set);
-    register_function(exec, context, "lambda", lambda);
-    register_function(exec, context, "cond", cond);
-    register_function(exec, context, "print", print);
-    register_function(exec, context, "prints", prints);
-    register_function(exec, context, "quote", quote);
-    register_function(exec, context, "cons", cons);
-    register_function(exec, context, "head", head);
-    register_function(exec, context, "tail", tail);
+    register_function(exec, global, "set", set);
+    register_function(exec, global, "lambda", lambda);
+    register_function(exec, global, "cond", cond);
+    register_function(exec, global, "print", print);
+    register_function(exec, global, "prints", prints);
+    register_function(exec, global, "quote", quote);
+    register_function(exec, global, "cons", cons);
+    register_function(exec, global, "head", head);
+    register_function(exec, global, "tail", tail);
 
-    register_function(exec, context, "gensym", gensym);
-    register_function(exec, context, "backquote", backquote);
-    register_function(exec, context, "macro", macro);
-    register_function(exec, context, "setmacro", setmacro);
-    register_function(exec, context, "getmacro", getmacro);
-    register_function(exec, context, "macroexpand", macroexpand);
+    register_function(exec, global, "gensym", gensym);
+    register_function(exec, global, "backquote", backquote);
+    register_function(exec, global, "macro", macro);
+    register_function(exec, global, "setmacro", setmacro);
+    register_function(exec, global, "getmacro", getmacro);
+    register_function(exec, global, "macroexpand", macroexpand);
 
-    Expr plus_func = register_function(exec, context, "plus", plus);
-    context_bind(context, add_atom(exec, "+"), plus_func);
+    Expr plus_func = register_function(exec, global, "plus", plus);
+    context_bind(global, add_atom(exec, "+"), plus_func);
 }
 
-void exec_cleanup(pExecutor exec)
+void exec_set_code(pExecutor exec, Expr code)
 {
-    // TODO: implement exec_cleanup
+    exec->code = code;
+}
+
+Expr exec_execute(pExecutor exec)
+{
+    return exec_eval_all(exec, exec->global, exec->code);
 }
 
 Expr exec_builtin_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
@@ -293,7 +335,7 @@ Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Ex
     }
     // Eval arguments
     Expr *values = malloc(argc * sizeof(Expr));
-    if (func->type != FT_MACRO)
+    if (func->type != FT_USER_MACRO)
     {
         if (values == NULL)
         {
@@ -317,11 +359,23 @@ Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Ex
         exit(1);
     }
     free(values);
+    // Push context
+    if (!context_stack_push(exec->stack, execContext))
+    {
+        log("exec_user_function: context_stack_push failed");
+        exit(1);
+    }
     // Execute
     Expr res = exec_eval_all(exec, execContext, user->body);
+    // Pop context
+    if (!context_stack_pop(exec->stack))
+    {
+        log("exec_user_function: context_stack_pop failed");
+        exit(1);
+    }
     context_unlink(execContext);
     // Execute return
-    if (func->type == FT_MACRO && !expand)
+    if (func->type == FT_USER_MACRO && !expand)
         res = exec_eval(exec, callContext, res);
 
     return res;
@@ -331,7 +385,7 @@ Expr exec_function(pExecutor exec, pContext callContext, pFunction func, Expr *a
 {
     if (func->type == FT_BUILTIN)
         return exec_builtin_function(exec, func, callContext, args, argc);
-    else if (func->type == FT_USER || func->type == FT_MACRO)
+    else if (func->type == FT_USER || func->type == FT_USER_MACRO)
         return exec_user_function(exec, func, callContext, args, argc, 0);
     else
     {
@@ -356,7 +410,7 @@ Expr get_function(pExecutor exec, pContext context, Expr list_head)
         func = dereference(func);
 
     // if value is macro it is unregistered macro.
-    if (func.type != VT_FUNC_VAL || func.val_func->type == FT_MACRO)
+    if (func.type != VT_FUNC_VAL || func.val_func->type == FT_USER_MACRO)
     {
         return expr_none();
     }
@@ -414,7 +468,7 @@ Expr exec_eval_all(pExecutor exec, pContext context, Expr expr)
 }
 Expr exec_macroexpand(pExecutor exec, pContext context, pFunction macro, Expr *args, int len)
 {
-    if (macro->type != FT_MACRO)
+    if (macro->type != FT_USER_MACRO)
         return expr_none();
     else
         return exec_user_function(exec, macro, context, args, len, 1);
@@ -538,7 +592,6 @@ Expr dereference(Expr ptr)
         return expr_none();
     return ptr.val_ptr->value;
 }
-
 Expr get_head(pExecutor exec, Expr pair)
 {
     if (pair.type != VT_PAIR) return expr_none();
@@ -735,15 +788,6 @@ Expr make_list(pExecutor exec, Expr *arr, int len)
     return list;
 }
 
-int is_true(pExecutor exec, Expr expr)
-{
-    if ((expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom) ||
-        (expr.type == VT_INT && expr.val_int == 0) ||
-        (expr.type == VT_NONE))
-        return 0;
-    return 1;
-}
-
 // struct Function functions
 
 pFunction create_function()
@@ -756,6 +800,7 @@ pFunction create_function()
     }
     res->type = FT_NONE;
     res->context = NULL;
+    res->gc_index = 0;
     return res;
 }
 
@@ -763,10 +808,12 @@ void free_function(pFunction func)
 {
     switch (func->type)
     {
-        case FT_BUILTIN: break;
-        case FT_MACRO:
+        case FT_BUILTIN:
+            break;
+        case FT_USER_MACRO:
         case FT_USER:
             free_user_function(func->user);
+            break;
         default:
             log("free_function: unknown function type. Unable to free");
             break;

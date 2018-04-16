@@ -34,6 +34,7 @@ pContext create_context(void)
     res->base = NULL;
     res->bindings = map;
     res->macros = macros;
+    res->gc_index = 0;
     return res;
 }
 
@@ -106,4 +107,71 @@ void context_unlink(pContext context)
     {
         free_context(context);
     }
+}
+
+pContextStack create_context_stack()
+{
+    pContextStack res = malloc(sizeof(ContextStack));
+    if (res == NULL)
+    {
+        perror("create_context_stack: malloc failed");
+        return NULL;
+    }
+    res->head = NULL;
+    return res;
+}
+
+void free_context_stack(pContextStack stack)
+{
+    while (stack->head != NULL)
+        context_stack_pop(stack);
+    free(stack);
+}
+
+pContextStackFrame create_context_stack_frame()
+{
+    pContextStackFrame res = malloc(sizeof(ContextStackFrame));
+    if (res == NULL)
+    {
+        perror("create_context_stack_frame: malloc failed");
+        return NULL;
+    }
+    res->next = NULL;
+    return res;
+}
+
+void free_context_stack_frame(pContextStackFrame frame)
+{
+    free(frame);
+}
+
+int context_stack_push(pContextStack stack, pContext context)
+{
+    pContextStackFrame frame = create_context_stack_frame();
+    if (frame == NULL)
+    {
+        log("context_stack_push: create_context_stack_frame failed");
+        return 0;
+    }
+    context_link(context);
+    frame->context = context;
+    frame->next = stack->head;
+
+    stack->head = frame;
+    return 1;
+}
+
+int context_stack_pop(pContextStack stack)
+{
+    if (stack->head == NULL)
+    {
+        log("context_stack_pop: stack is empty");
+        return 0;
+    }
+    pContextStackFrame frame = stack->head;
+    stack->head = frame->next;
+
+    context_unlink(frame->context);
+    free_context_stack_frame(frame);
+    return 1;
 }
