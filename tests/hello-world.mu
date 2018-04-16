@@ -78,3 +78,13 @@
 (prints "2 + 3 =" (foo 2 3 4 5 6))
 (print (macroexpand 'defun '(bar (a b &rest c) 1 2 3)))
 
+(prints "<<< RUN GARBAGE COLLECTOR >>>")
+(set gc-res (gc-collect))
+(set gc-atoms (head gc-res))
+(set gc-pairs (head (tail gc-res)))
+(set gc-objects (head (tail (tail gc-res))))
+(prints "garbage collected")
+(prints "\tatoms:" gc-atoms)
+(prints "\tpairs:" gc-pairs)
+(prints "\tobjects:" gc-objects)
+

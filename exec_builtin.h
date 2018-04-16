@@ -25,5 +25,6 @@ BUILTIN_FUNC(cond);
 
 BUILTIN_FUNC(gensym);
 BUILTIN_FUNC(macroexpand);
+BUILTIN_FUNC(gc_collect_builtin);
 
 #endif // EXEC_BUILTIN_H_INCLUDED

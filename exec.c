@@ -234,6 +234,7 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "setmacro", setmacro);
     register_function(exec, global, "getmacro", getmacro);
     register_function(exec, global, "macroexpand", macroexpand);
+    register_function(exec, global, "gc-collect", gc_collect_builtin);
 
     Expr plus_func = register_function(exec, global, "plus", plus);
     context_bind(global, add_atom(exec, "+"), plus_func);
@@ -547,11 +548,15 @@ size_t add_atom(pExecutor exec, char *name)
     int res = find_place_for_atom(exec, copy, &found);
     if (res == FIND_PLACE_ERROR)
     {
-        // not enough place
-        // TODO: call GC_collect. And try again
-        log("add_atom: out of memory");
-        free(copy);
-        return EXPR_ERROR;
+        // free unused memory and try again
+        gc_collect(exec);
+        res = find_place_for_atom(exec, copy, &found);
+        if (res == FIND_PLACE_ERROR)
+        {
+            log("add_atom: out of memory");
+            free(copy);
+            return EXPR_ERROR;
+        }
     }
     if (res == FIND_PLACE_EXISTS)
     {
@@ -575,8 +580,14 @@ size_t add_pair(pExecutor exec)
     int res = find_place_for_pair(exec, &place);
     if (res == FIND_PLACE_ERROR)
     {
-        log("add_pair: out of memory");
-        return EXPR_ERROR;
+        // free unused memory and try again
+        gc_collect(exec);
+        res = find_place_for_pair(exec, &place);
+        if (res == FIND_PLACE_ERROR)
+        {
+            log("add_pair: out of memory");
+            return EXPR_ERROR;
+        }
     }
     exec->pairsFlags[place] = GC_USED;
     return place;

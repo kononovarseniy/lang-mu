@@ -228,8 +228,9 @@ void gc_scan_context_stack(pExecutor exec, pContextStack stack)
     }
 }
 
-void gc_del_atoms(pExecutor exec)
+int gc_del_atoms(pExecutor exec)
 {
+    int deleted = 0;
     size_t cnt = exec->atomsCount;
     for (size_t i = 0; i < cnt; i++)
     {
@@ -239,13 +240,18 @@ void gc_del_atoms(pExecutor exec)
             if (flags & GC_REFERENCED)
                 exec->atomsFlags[i] &= ~GC_REFERENCED;
             else
+            {
                 del_atom(exec, i);
+                deleted++;
+            }
         }
     }
+    return deleted;
 }
 
-void gc_del_pairs(pExecutor exec)
+int gc_del_pairs(pExecutor exec)
 {
+    int deleted = 0;
     size_t cnt = exec->pairsCount;
     for (size_t i = 0; i < cnt; i++)
     {
@@ -255,13 +261,18 @@ void gc_del_pairs(pExecutor exec)
             if (flags & GC_REFERENCED)
                 exec->pairsFlags[i] &= ~GC_REFERENCED;
             else
+            {
                 del_pair(exec, i);
+                deleted++;
+            }
         }
     }
+    return deleted;
 }
 
-void gc_del_pointers(pExecutor exec)
+int gc_del_pointers(pExecutor exec)
 {
+    int deleted = 0;
     pHeap heap = exec->heap;
     size_t cnt = heap->size;
     for (size_t i = 0; i < cnt; i++)
@@ -272,18 +283,30 @@ void gc_del_pointers(pExecutor exec)
             if (ptr->flags & GC_REFERENCED)
                 ptr->flags &= ~GC_REFERENCED;
             else
+            {
                 gc_free(heap, ptr);
+                deleted++;
+            }
         }
     }
+    return deleted;
 }
 
-void gc_collect(pExecutor exec)
+void gc_collectv(pExecutor exec, int *atoms, int *pairs, int *pointers)
 {
     exec->gc_index++;
     gc_scan_context_stack(exec, exec->stack);
     gc_mark_expression(exec, exec->code);
 
-    gc_del_atoms(exec);
-    gc_del_pairs(exec);
-    gc_del_pointers(exec);
+    int atoms_count = gc_del_atoms(exec);
+    int pairs_count = gc_del_pairs(exec);
+    int pointers_count = gc_del_pointers(exec);
+    if (atoms != NULL) *atoms = atoms_count;
+    if (pairs != NULL) *pairs = pairs_count;
+    if (pointers != NULL) *pointers = pointers_count;
+}
+
+void gc_collect(pExecutor exec)
+{
+    return gc_collectv(exec, NULL, NULL, NULL);
 }

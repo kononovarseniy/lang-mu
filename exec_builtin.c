@@ -601,3 +601,22 @@ BUILTIN_FUNC(macroexpand)
     return make_pair(exec, expanded, make_pair(exec, success, exec->nil));
 }
 
+BUILTIN_FUNC(gc_collect_builtin)
+{
+    if (argc != 0)
+    {
+        log("gc-collect: too many arguments");
+        exit(1);
+    }
+    int atoms, pairs, objects;
+    gc_collectv(exec, &atoms, &pairs, &objects);
+    Expr arr[3] =
+    {
+        make_int(exec, atoms),
+        make_int(exec, pairs),
+        make_int(exec, objects)
+    };
+    Expr res = make_list(exec, arr, 3);
+    return res;
+}
+
