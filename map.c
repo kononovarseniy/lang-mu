@@ -23,6 +23,7 @@ void free_map(pMap map)
 {
     free(map->keys);
     free(map->values);
+    free(map);
 }
 
 int map_set(pMap map, size_t key, void *value)

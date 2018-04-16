@@ -146,7 +146,8 @@ void free_executor(pExecutor exec)
     context_unlink(exec->global);
 
     for (int i = 0; i < exec->atomsCount; i++)
-        free((exec->atoms[i]));
+        if (exec->atomsFlags[i] & GC_USED)
+            free(exec->atoms[i]);
     free(exec->atoms);
     free(exec->atomsFlags);
     free(exec->cars);

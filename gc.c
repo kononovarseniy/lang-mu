@@ -6,7 +6,8 @@
 
 int gc_adjust_size(pHeap heap, size_t size)
 {
-    int cur_blocks = heap->size % BLOCK_SIZE;
+    int old_size = heap->size;
+    int cur_blocks = old_size % BLOCK_SIZE;
     int req_blocks = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
     if (cur_blocks == req_blocks) return 1;
     int new_size = req_blocks * BLOCK_SIZE;
@@ -17,6 +18,9 @@ int gc_adjust_size(pHeap heap, size_t size)
         perror("gc_adjust_size: realloc failed");
         return 0;
     }
+    for (size_t i = old_size; i < new_size; i++)
+        array[i].flags = GC_NONE;
+
     heap->values = array;
     heap->size = new_size;
     return 1;

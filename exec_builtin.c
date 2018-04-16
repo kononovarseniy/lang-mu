@@ -188,6 +188,7 @@ Expr backquote_impl(pExecutor exec, pContext context, Expr expr)
                 exit(1);
             }
         }
+        free(items);
 
         return rest;
     }
@@ -451,6 +452,7 @@ Expr lambda_impl(pExecutor exec, pContext context, Expr *args, int argc, enum Fu
     int bodyLen = argc - 1;
 
     pUserFunction func = build_user_function(exec, f_args, f_argc, body, bodyLen);
+    free(f_args);
     if (func == NULL)
     {
         logf("%s: build_user_function failed", caller_name);

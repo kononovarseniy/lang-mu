@@ -20,6 +20,23 @@ pSTree create_stree(void)
 
 void free_stree(pSTree tree)
 {
+    switch (tree->type)
+    {
+    case NODE_STR:
+        free(tree->str_val);
+        break;
+    case NODE_NAME:
+        free(tree->name);
+        break;
+    case NODE_LIST:
+        if (tree->child != NULL)
+            free_stree(tree->child);
+        break;
+    default:
+        break;
+    }
+    if (tree->next != NULL)
+        free_stree(tree->next);
     free(tree);
 }
 

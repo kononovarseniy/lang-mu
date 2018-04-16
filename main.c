@@ -54,8 +54,9 @@ int main(int argc, char **argv)
 {
     pSTree code_tree = parse_file("tests/hello-world.mu");
 
-    //print_code_tree(code_tree);
     execute_program(code_tree);
+
+    free_stree(code_tree);
 
     return 0;
 }

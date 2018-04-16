@@ -67,7 +67,7 @@ list:   OPEN_PAREN items CLOSE_PAREN    {
         }
         ;
 
-item:   NAME { $$ = parser_create_atom($1); }
+item:   NAME { $$ = parser_create_atom($1); free($1); }
         | COMMA         { $$ = parser_create_atom("#:comma"); }
         | COMMA_ATSIGN  { $$ = parser_create_atom("#:comma_atsign"); }
         | INT_LITERAL {
