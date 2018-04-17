@@ -3,9 +3,15 @@
 
 #include "exec.h"
 
+BUILTIN_FUNC(def);
 BUILTIN_FUNC(set);
-BUILTIN_FUNC(setmacro);
-BUILTIN_FUNC(getmacro);
+
+BUILTIN_FUNC(defm);
+BUILTIN_FUNC(setm);
+BUILTIN_FUNC(getm);
+
+BUILTIN_FUNC(set_head_builtin);
+BUILTIN_FUNC(set_tail_builtin);
 
 BUILTIN_FUNC(print);
 BUILTIN_FUNC(prints);

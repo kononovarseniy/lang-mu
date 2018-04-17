@@ -15,6 +15,7 @@ Expr expr_none();
 int is_none(Expr expr);
 int is_equal(Expr a, Expr b);
 int is_true(pExecutor exec, Expr expr);
+int is_macro(Expr expr);
 
 pExecutor create_executor(void);
 void free_executor(pExecutor exec);
@@ -40,6 +41,8 @@ void del_pair(pExecutor exec, size_t pair);
 Expr dereference(Expr ptr);
 Expr get_head(pExecutor exec, Expr pair);
 Expr get_tail(pExecutor exec, Expr pair);
+void set_head(pExecutor exec, Expr pair, Expr value);
+void set_tail(pExecutor exec, Expr pair, Expr value);
 int get_len(pExecutor exec, Expr expr);
 Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);

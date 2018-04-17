@@ -6,77 +6,118 @@
 
 #include "print.h"
 
-BUILTIN_FUNC(set)
+Expr set_impl(
+              pExecutor exec,
+              pContext context,
+              Expr *args,
+              int argc,
+              int check_macro,
+              char *caller,
+              int (*set_func)(pContext, size_t, Expr))
 {
     /*
-        (set a 1)
+        (def a 1)
     */
     if (argc != 2)
     {
-        log("set: wrong arguments syntax");
+        logf("%s: wrong arguments syntax", caller);
         exit(1);
     }
     Expr atom = args[0];
     if (atom.type != VT_ATOM)
     {
-        log("set: wrong arguments syntax");
+        logf("%s: wrong arguments syntax", caller);
         exit(1);
     }
-    Expr val = exec_eval(exec, callContext, args[1]);
-    context_bind(callContext, atom.val_atom, val);
 
+    // Evaluate value
+    Expr val = exec_eval(exec, context, args[1]);
+
+    if (check_macro && !is_macro(val))
+    {
+        logf("%s: argument is not a macro", caller);
+        exit(1);
+    }
+
+    // Set variable
+    if (set_func(context, atom.val_atom, val) == MAP_FAILED)
+    {
+        logf("%s: set failed", caller);
+        exit(1);
+    }
     return val;
 }
 
-BUILTIN_FUNC(setmacro)
+BUILTIN_FUNC(def)
 {
-    if (argc != 2)
-    {
-        log("setmacro: wrong arguments syntax");
-        exit(1);
-    }
-    Expr atom = args[0];
-    if (atom.type != VT_ATOM)
-    {
-        log("setmacro: wrong arguments syntax");
-        exit(1);
-    }
-    Expr val = exec_eval(exec, callContext, args[1]);
-    if (val.type != VT_FUNC_PTR || dereference(val).val_func->type != FT_USER_MACRO)
-    {
-        log("setmacro: argument is not a macro");
-        exit(1);
-    }
-    if (context_set_macro(callContext, atom.val_atom, val) == MAP_FAILED)
-    {
-        log("setmacro: context_set_macro failed");
-        exit(1);
-    }
-
-    return val;
+    return set_impl(exec, callContext, args, argc, 0, "def", context_bind);
 }
 
-BUILTIN_FUNC(getmacro)
+BUILTIN_FUNC(set)
+{
+    return set_impl(exec, callContext, args, argc, 0, "set", context_set);
+}
+
+BUILTIN_FUNC(defm)
+{
+    return set_impl(exec, callContext, args, argc, 1, "defm", context_bind_macro);
+}
+
+BUILTIN_FUNC(setm)
+{
+    return set_impl(exec, callContext, args, argc, 1, "setm", context_set_macro);
+}
+
+BUILTIN_FUNC(getm)
 {
     if (argc != 1)
     {
-        log("getmacro: wrong arguments syntax");
+        log("getm: wrong arguments syntax");
         exit(1);
     }
     Expr atom = args[0];
     if (atom.type != VT_ATOM)
     {
-        log("getmacro: wrong arguments syntax");
+        log("getm: wrong arguments syntax");
         exit(1);
     }
     Expr res;
     if (context_get_macro(callContext, atom.val_atom, &res) == MAP_FAILED)
     {
-        log("getmacro: context_get_macro failed");
+        log("getm: context_get_macro failed");
         exit(1);
     }
 
     return res;
+}
+
+Expr set_pair_impl(pExecutor exec, pContext context, Expr *args, int argc, char *caller, void (*set_func)(pExecutor, Expr, Expr))
+{
+    if (argc != 2)
+    {
+        logf("%s: wrong arguments syntax", caller);
+        exit(1);
+    }
+    Expr pair = exec_eval(exec, context, args[0]);
+    if (pair.type != VT_PAIR)
+    {
+        logf("%s: first argument not a pair", caller);
+        exit(1);
+    }
+    // Evaluate value
+    Expr val = exec_eval(exec, context, args[1]);
+
+    set_func(exec, pair, val);
+    return val;
+}
+
+BUILTIN_FUNC(set_head_builtin)
+{
+    return set_pair_impl(exec, callContext, args, argc, "set-head", set_head);
+}
+BUILTIN_FUNC(set_tail_builtin)
+{
+    return set_pair_impl(exec, callContext, args, argc, "set-tail", set_tail);
 }
 
 BUILTIN_FUNC(print)
@@ -545,7 +586,7 @@ BUILTIN_FUNC(gensym)
                 exit(1);
             }
             value.val_int = n + 1;
-            if (context_bind(defContext, counter.val_atom, value) == MAP_FAILED)
+            if (context_set(defContext, counter.val_atom, value) == MAP_FAILED)
             {
                 log("gensym: context_bind failed");
                 exit(1);

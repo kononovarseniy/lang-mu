@@ -65,6 +65,20 @@ int context_bind(pContext context, size_t key, Expr value)
     return map_set(context->bindings, key, &value);
 }
 
+int context_set(pContext context, size_t key, Expr value)
+{
+    pContext curr = context;
+    while (curr != NULL)
+    {
+        Expr old_value;
+        int res = map_get(curr->bindings, key, &old_value);
+        if (res == MAP_SUCCESS)
+            return context_bind(curr, key, value);
+        curr = curr->base;
+    }
+    return context_bind(context, key, value);
+}
+
 int context_get(pContext context, size_t key, Expr *value)
 {
     while (context != NULL)
@@ -77,10 +91,25 @@ int context_get(pContext context, size_t key, Expr *value)
     return MAP_FAILED;
 }
 
-int context_set_macro(pContext context, size_t key, Expr value)
+int context_bind_macro(pContext context, size_t key, Expr value)
 {
     return map_set(context->macros, key, &value);
 }
+
+int context_set_macro(pContext context, size_t key, Expr value)
+{
+    pContext curr = context;
+    while (curr != NULL)
+    {
+        Expr old_value;
+        int res = map_get(curr->macros, key, &old_value);
+        if (res == MAP_SUCCESS)
+            return context_bind(curr, key, value);
+        curr = curr->base;
+    }
+    return context_bind(context, key, value);
+}
+
 int context_get_macro(pContext context, size_t key, Expr *value)
 {
     while (context != NULL)

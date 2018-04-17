@@ -33,9 +33,12 @@ pContext create_context(void);
 void free_context(pContext context);
 
 pContext context_inherit(pContext base);
+
 int context_bind(pContext context, size_t key, Expr value);
+int context_set(pContext context, size_t key, Expr value);
 int context_get(pContext context, size_t key, Expr *value);
 
+int context_bind_macro(pContext context, size_t key, Expr value);
 int context_set_macro(pContext context, size_t key, Expr value);
 int context_get_macro(pContext context, size_t key, Expr *value);
 

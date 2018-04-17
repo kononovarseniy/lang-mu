@@ -51,6 +51,12 @@ int is_true(pExecutor exec, Expr expr)
         return 0;
     return 1;
 }
+int is_macro(Expr expr)
+{
+    return
+        expr.type == VT_FUNC_PTR &&
+        dereference(expr).val_func->type == FT_USER_MACRO;
+}
 
 pExecutor create_executor(void)
 {
@@ -219,7 +225,16 @@ void exec_init(pExecutor exec)
     exec->code = exec->nil;
 
     // Register built-in function
+    register_function(exec, global, "def", def);
     register_function(exec, global, "set", set);
+
+    register_function(exec, global, "defm", defm);
+    register_function(exec, global, "setm", setm);
+    register_function(exec, global, "getm", getm);
+
+    register_function(exec, global, "set-head", set_head_builtin);
+    register_function(exec, global, "set-tail", set_tail_builtin);
+
     register_function(exec, global, "lambda", lambda);
     register_function(exec, global, "cond", cond);
     register_function(exec, global, "print", print);
@@ -232,8 +247,6 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "gensym", gensym);
     register_function(exec, global, "backquote", backquote);
     register_function(exec, global, "macro", macro);
-    register_function(exec, global, "setmacro", setmacro);
-    register_function(exec, global, "getmacro", getmacro);
     register_function(exec, global, "macroexpand", macroexpand);
     register_function(exec, global, "gc-collect", gc_collect_builtin);
 
@@ -613,6 +626,16 @@ Expr get_tail(pExecutor exec, Expr pair)
 {
     if (pair.type != VT_PAIR) return expr_none();
     return exec->cdrs[pair.val_pair];
+}
+void set_head(pExecutor exec, Expr pair, Expr value)
+{
+    if (pair.type != VT_PAIR) return;
+    exec->cars[pair.val_pair] = value;
+}
+void set_tail(pExecutor exec, Expr pair, Expr value)
+{
+    if (pair.type != VT_PAIR) return;
+    exec->cdrs[pair.val_pair] = value;
 }
 
 int get_len(pExecutor exec, Expr expr)
