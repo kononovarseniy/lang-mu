@@ -254,6 +254,80 @@ BUILTIN_FUNC(backquote)
     return backquote_impl(exec, callContext, args[0]);
 }
 
+BUILTIN_FUNC(eq)
+{
+    if (argc < 2)
+    {
+        log("eq: too few arguments");
+        exit(1);
+    }
+    if (argc > 2)
+    {
+        log("eq: too many arguments");
+        exit(1);
+    }
+    Expr a = exec_eval(exec, callContext, args[0]);
+    Expr b = exec_eval(exec, callContext, args[1]);
+    if (is_equal(a, b))
+        return exec->t;
+    else
+        return exec->nil;
+}
+BUILTIN_FUNC(and)
+{
+    for (int i = 0; i < argc; i++)
+    {
+        Expr val = exec_eval(exec, callContext, args[i]);
+        if (!is_true(exec, val))
+            return exec->nil;
+    }
+    return exec->t;
+}
+BUILTIN_FUNC(or)
+{
+    for (int i = 0; i < argc; i++)
+    {
+        Expr val = exec_eval(exec, callContext, args[i]);
+        if (is_true(exec, val))
+            return exec->t;
+    }
+    return exec->nil;
+}
+BUILTIN_FUNC(not)
+{
+    if (argc < 1)
+    {
+        log("not: too few arguments");
+        exit(1);
+    }
+    if (argc > 1)
+    {
+        log("not: too many arguments");
+        exit(1);
+    }
+
+    Expr val = exec_eval(exec, callContext, args[0]);
+    if (is_true(exec, val))
+        return exec->nil;
+    else
+        return exec->t;
+}
+BUILTIN_FUNC(xor)
+{
+    int cnt = 0;
+    for (int i = 0; i < argc; i++)
+    {
+        Expr val = exec_eval(exec, callContext, args[i]);
+        if (is_true(exec, val))
+            cnt++;
+    }
+    if (cnt == 1)
+        return exec->t;
+    else
+        return exec->nil;
+
+}
+
 BUILTIN_FUNC(plus)
 {
     long res = 0;

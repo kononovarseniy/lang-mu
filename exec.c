@@ -21,11 +21,6 @@ int is_none(Expr expr)
 int is_equal(Expr a, Expr b)
 {
     if (a.type != b.type) return 0;
-    if (a.type & VT_POINTER)
-    {
-        a = dereference(a);
-        b = dereference(b);
-    }
     switch (a.type)
     {
     case VT_ATOM:
@@ -34,9 +29,15 @@ int is_equal(Expr a, Expr b)
         return a.val_char == b.val_char;
     case VT_INT:
         return a.val_int == b.val_int;
-    case VT_STRING_VAL:
-        return strcmp(a.val_str, b.val_str) == 0;
+    case VT_STRING_PTR:
+        return strcmp(
+                      dereference(a).val_str,
+                      dereference(b).val_str) == 0;
     case VT_PAIR:
+    case VT_STRING_VAL:
+    case VT_FUNC_PTR:
+    case VT_FUNC_VAL:
+        return 0;
     case VT_NONE:
     default:
         log("is_equal: unable to compare");
@@ -46,7 +47,6 @@ int is_equal(Expr a, Expr b)
 int is_true(pExecutor exec, Expr expr)
 {
     if ((expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom) ||
-        (expr.type == VT_INT && expr.val_int == 0) ||
         (expr.type == VT_NONE))
         return 0;
     return 1;
@@ -249,6 +249,12 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "macro", macro);
     register_function(exec, global, "macroexpand", macroexpand);
     register_function(exec, global, "gc-collect", gc_collect_builtin);
+
+    register_function(exec, global, "eq", eq);
+    register_function(exec, global, "and", and);
+    register_function(exec, global, "or", or);
+    register_function(exec, global, "not", not);
+    register_function(exec, global, "xor", xor);
 
     Expr plus_func = register_function(exec, global, "plus", plus);
     context_bind(global, add_atom(exec, "+"), plus_func);

@@ -18,6 +18,12 @@ BUILTIN_FUNC(prints);
 BUILTIN_FUNC(quote);
 BUILTIN_FUNC(backquote);
 
+BUILTIN_FUNC(eq);
+BUILTIN_FUNC(and);
+BUILTIN_FUNC(or);
+BUILTIN_FUNC(not);
+BUILTIN_FUNC(xor);
+
 BUILTIN_FUNC(plus);
 
 BUILTIN_FUNC(cons);
