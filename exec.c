@@ -276,15 +276,22 @@ Expr exec_builtin_function(pExecutor exec, pFunction func, pContext callContext,
     return res;
 }
 
+// -1 too few
+//  0 accepted
+// +1 too many
 int check_args_count(pUserFunction func, int argc)
 {
-    if (argc < func->argc) // Too few
+    // Less than number of required arguments
+    if (argc < func->argc)
+        return -1;
+    // Rest is present so any big number is accepted
+    if (func->rest.type != VT_NONE)
         return 0;
-    if (func->rest.type != VT_NONE) // Rest present
-        return 1;
+    // Less than number of required and optional arguments
     if (argc <= func->argc + func->optc) // Not too many
-        return 1;
-    return 0;
+        return 0;
+    // Too many
+    return 1;
 }
 
 int bind_req_and_opt_args(pExecutor exec, pContext execContext, pUserFunction func, Expr *args, int argc)
@@ -349,9 +356,10 @@ int user_function_bind_args(pExecutor exec, pContext execContext, pContext callC
 Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc, int expand)
 {
     pUserFunction user = func->user;
-    if (!check_args_count(user, argc))
+    int check_res = check_args_count(user, argc);
+    if (check_res != 0)
     {
-        log("exec_user_function: wrong number of arguments");
+        logf("exec_user_function: too %s arguments", check_res == -1 ? "few" : "many");
         exit(1);
     }
     // Eval arguments
@@ -472,7 +480,7 @@ Expr exec_eval(pExecutor exec, pContext context, Expr expr)
 
 Expr exec_eval_array(pExecutor exec, pContext context, Expr *array, int len)
 {
-    Expr res;
+    Expr res = exec->nil;
     for (int i = 0; i < len; i++)
     {
         res = exec_eval(exec, context, array[i]);

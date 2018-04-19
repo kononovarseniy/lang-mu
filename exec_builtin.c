@@ -212,7 +212,8 @@ Expr backquote_impl(pExecutor exec, pContext context, Expr expr)
         Expr evaluated = exec_eval(exec, context, next);
         Expr rest = backquote_impl(exec, context, get_tail(exec, tail));
 
-        if (evaluated.type != VT_PAIR)
+        if (evaluated.type != VT_PAIR &&
+            !is_equal(exec->nil, evaluated))
         {
             log("backquote: not a list after `,@`");
             exit(1);
@@ -555,7 +556,7 @@ Expr lambda_impl(pExecutor exec, pContext context, Expr *args, int argc, enum Fu
         (lambda (ar gu me nts) body)
     */
     char *caller_name = type == FT_USER ? "lambda" : "macro";
-    if (argc < 2 || !is_list(exec, args[0]))
+    if (argc < 1 || !is_list(exec, args[0]))
     {
         logf("%s: wrong arguments", caller_name);
         exit(1);

@@ -79,6 +79,8 @@
 (defun foo (a b &rest c) (+ a b))
 (prints "foo-def end")
 (prints "2 + 3 =" (foo 2 3 4 5 6))
+(defun ret-nil ())
+(prints "ret-nil result:" (ret-nil))
 (print (macroexpand 'defun '(bar (a b &rest c) 1 2 3)))
 
 (prints "<<< RUN GARBAGE COLLECTOR >>>")
