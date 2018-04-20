@@ -23,6 +23,7 @@ void free_map(pMap map)
 {
     free(map->keys);
     free(map->values);
+    free(map);
 }
 
 int map_set(pMap map, size_t key, void *value)
@@ -70,4 +71,27 @@ int map_get(pMap map, size_t key, void *value)
         }
     }
     return MAP_FAILED;
+}
+
+size_t *map_get_keys(pMap map)
+{
+    size_t *res = malloc(map->count * sizeof(size_t));
+    if (res == NULL)
+    {
+        perror("map_get_keys: malloc failed");
+        return 0;
+    }
+    memcpy(res, map->keys, map->count * sizeof(size_t));
+    return res;
+}
+void *map_get_values(pMap map)
+{
+    void *res = malloc(map->count * map->value_size);
+    if (res == NULL)
+    {
+        perror("map_get_values: malloc failed");
+        return 0;
+    }
+    memcpy(res, map->values, map->count * map->value_size);
+    return res;
 }

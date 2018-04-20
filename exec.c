@@ -14,72 +14,170 @@ Expr expr_none()
     res.type = VT_NONE;
     return res;
 }
+int is_none(Expr expr)
+{
+    return expr.type == VT_NONE;
+}
+int is_equal(Expr a, Expr b)
+{
+    if (a.type != b.type) return 0;
+    switch (a.type)
+    {
+    case VT_ATOM:
+        return a.val_atom == b.val_atom;
+    case VT_CHAR:
+        return a.val_char == b.val_char;
+    case VT_INT:
+        return a.val_int == b.val_int;
+    case VT_STRING_PTR:
+        return strcmp(
+                      dereference(a).val_str,
+                      dereference(b).val_str) == 0;
+    case VT_PAIR:
+    case VT_STRING_VAL:
+    case VT_FUNC_PTR:
+    case VT_FUNC_VAL:
+        return 0;
+    case VT_NONE:
+    default:
+        log("is_equal: unable to compare");
+        exit(1);
+    }
+}
+int is_true(pExecutor exec, Expr expr)
+{
+    if ((expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom) ||
+        (expr.type == VT_NONE))
+        return 0;
+    return 1;
+}
+int is_macro(Expr expr)
+{
+    return
+        expr.type == VT_FUNC_PTR &&
+        dereference(expr).val_func->type == FT_USER_MACRO;
+}
 
 pExecutor create_executor(void)
 {
-    char **atoms = malloc(MAX_ATOMS * sizeof(char*));
+    char **atoms                = malloc(MAX_ATOMS * sizeof(char*));
+    enum GCFlags *atomsFlags    = malloc(MAX_ATOMS * sizeof(enum GCFlags));
+    Expr *cars                  = malloc(MAX_PAIRS * sizeof(Expr));
+    Expr *cdrs                  = malloc(MAX_PAIRS * sizeof(Expr));
+    enum GCFlags *pairsFlags    = malloc(MAX_PAIRS * sizeof(enum GCFlags));
+
+    pHeap heap          = create_heap();
+    pContextStack stack = create_context_stack();
+
+    pExecutor res = malloc(sizeof(Executor));
+
+    int success = 1;
     if (atoms == NULL)
     {
         perror("create_executor: `atoms` allocation failed");
-        return NULL;
+        success = 0;
     }
-
-    Expr *cars = malloc(MAX_PAIRS * sizeof(Expr));
+    if (atomsFlags == NULL)
+    {
+        perror("create_executor: `atomsFlags` allocation failed");
+        success = 0;
+    }
     if (cars == NULL)
     {
         perror("create_executor: `cars` allocation failed");
-        free(atoms);
-        return NULL;
+        success = 0;
     }
-
-    Expr *cdrs = malloc(MAX_PAIRS * sizeof(Expr));
     if (cdrs == NULL)
     {
         perror("create_executor: `cdrs` allocation failed");
-        free(atoms);
-        free(cdrs);
-        return NULL;
+        success = 0;
     }
-
-    pExecutor res = malloc(sizeof(Executor));
+    if (pairsFlags == NULL)
+    {
+        perror("create_executor: `pairsFlags` allocation failed");
+        success = 0;
+    }
+    if (heap == NULL)
+    {
+        log("create_executor: create_heap failed");
+        success = 0;
+    }
+    if (stack == NULL)
+    {
+        log("create_executor: create_context_stack failed");
+        success = 0;
+    }
     if (res == NULL)
     {
         perror("create_executor: memory allocation failed");
+        success = 0;
+    }
+
+    if (!success)
+    {
         free(atoms);
+        free(atomsFlags);
         free(cars);
         free(cdrs);
+        free(pairsFlags);
+        free_heap(heap);
+        free_context_stack(stack);
+        free(res);
         return NULL;
     }
 
-    res->atomsCount = 0;
-    res->pairsCount = 0;
+    for (size_t i = 0; i < MAX_ATOMS; i++)
+        atomsFlags[i] = GC_NONE;
+    for (size_t i = 0; i < MAX_PAIRS; i++)
+        pairsFlags[i] = GC_NONE;
+
+    res->atomsCount = MAX_ATOMS;
+    res->pairsCount = MAX_PAIRS;
     res->atoms = atoms;
+    res->atomsFlags = atomsFlags;
     res->cars = cars;
     res->cdrs = cdrs;
+    res->pairsFlags = pairsFlags;
+    res->heap = heap;
+    res->stack = stack;
+    res->global = NULL;
+
+    res->code = expr_none();
+    res->gc_index = 0;
+
     return res;
 }
 void free_executor(pExecutor exec)
 {
+    context_unlink(exec->global);
+
     for (int i = 0; i < exec->atomsCount; i++)
-        free((exec->atoms[i]));
+        if (exec->atomsFlags[i] & GC_USED)
+            free(exec->atoms[i]);
     free(exec->atoms);
+    free(exec->atomsFlags);
     free(exec->cars);
     free(exec->cdrs);
+    free(exec->pairsFlags);
+    free_heap(exec->heap);
+    free_context_stack(exec->stack);
     free(exec);
 }
 
-Expr register_atom(pExecutor exec, char *name)
+Expr register_atom(pExecutor exec, pContext context, char *name, int bind)
 {
-    size_t atom = add_atom(exec, name);
-    if (atom == EXPR_ERROR)
+    Expr res = make_atom(exec, name);
+    if (is_none(res))
     {
-        log("register_atom: add_atom failed");
+        log("register_atom: make_atom failed");
         exit(1);
     }
 
-    Expr res;
-    res.type = VT_ATOM;
-    res.val_atom = atom;
+    if (bind && context_bind(context, res.val_atom, res) == MAP_FAILED)
+    {
+        log("register_atom: context_bind failed");
+        exit(1);
+    }
     return res;
 }
 
@@ -87,141 +185,89 @@ Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFun
 {
     size_t atom = add_atom(exec, name);
 
-    pFunction funcval = create_function();
-    if (funcval == NULL)
+    Expr res = make_builtin_function(exec, func, context);
+    if (is_none(res))
     {
-        log("register_function: create_function failed");
+        log("register_function: make_builtin_function failed");
         exit(1);
     }
-    funcval->type = FT_BUILTIN;
-    funcval->context = context;
-    funcval->builtin = func;
-    context_link(context);
 
-    Expr expr;
-    expr.type = VT_FUNC;
-    expr.val_func = funcval;
-
-    if (context_bind(context, atom, expr) == MAP_FAILED)
+    if (context_bind(context, atom, res) == MAP_FAILED)
     {
         log("register_function: context_bind failed");
         exit(1);
     }
 
-    return expr;
+    return res;
 }
 
-void exec_init(pExecutor exec, pContext context)
+void exec_init(pExecutor exec)
 {
+    // Create global
+    pContext global = create_context();
+    if (global == NULL)
+    {
+        log("exec_init: create_context failed");
+        exit(1);
+    }
+    context_stack_push(exec->stack, global);
+    exec->global = global;
+
+
     // Create minimal set of atoms
-    exec->nil = register_atom(exec, "nil");
-    exec->t = register_atom(exec, "t");
-    exec->quote = register_atom(exec, "quote");
+    exec->nil = register_atom(exec, global, "nil", 1);
+    exec->t = register_atom(exec, global, "t", 1);
+    exec->quote = register_atom(exec, global, "quote", 0);
+    exec->comma = register_atom(exec, global, "#:comma", 0);
+    exec->comma_atsign = register_atom(exec, global, "#:comma_atsign", 0);
+
+    // Set code to empty list
+    exec->code = exec->nil;
 
     // Register built-in function
-    register_function(exec, context, "set", set);
-    register_function(exec, context, "lambda", lambda);
-    register_function(exec, context, "print", print);
-    register_function(exec, context, "prints", prints);
-    register_function(exec, context, "quote", quote);
-    Expr plus_func = register_function(exec, context, "plus", plus);
+    register_function(exec, global, "def", def);
+    register_function(exec, global, "set", set);
 
-    context_bind(context, add_atom(exec, "+"), plus_func);
+    register_function(exec, global, "defm", defm);
+    register_function(exec, global, "setm", setm);
+    register_function(exec, global, "getm", getm);
+
+    register_function(exec, global, "set-head", set_head_builtin);
+    register_function(exec, global, "set-tail", set_tail_builtin);
+
+    register_function(exec, global, "lambda", lambda);
+    register_function(exec, global, "cond", cond);
+    register_function(exec, global, "print", print);
+    register_function(exec, global, "prints", prints);
+    register_function(exec, global, "quote", quote);
+    register_function(exec, global, "cons", cons);
+    register_function(exec, global, "head", head);
+    register_function(exec, global, "tail", tail);
+
+    register_function(exec, global, "gensym", gensym);
+    register_function(exec, global, "backquote", backquote);
+    register_function(exec, global, "macro", macro);
+    register_function(exec, global, "macroexpand", macroexpand);
+    register_function(exec, global, "gc-collect", gc_collect_builtin);
+
+    register_function(exec, global, "eq", eq);
+    register_function(exec, global, "and", and);
+    register_function(exec, global, "or", or);
+    register_function(exec, global, "not", not);
+    register_function(exec, global, "xor", xor);
+
+    Expr plus_func = register_function(exec, global, "plus", plus);
+    context_bind(global, add_atom(exec, "+"), plus_func);
 }
 
-void exec_cleanup(pExecutor exec)
+void exec_set_code(pExecutor exec, Expr code)
 {
-    // TODO: implement exec_cleanup
+    exec->code = code;
 }
 
-Expr load_atom(pExecutor exec, pSTree item)
+Expr exec_execute(pExecutor exec)
 {
-    Expr res;
-    res.type = VT_ATOM;
-    res.val_atom = add_atom(exec, item->name);
-    return res;
-}
-
-Expr load_int(pExecutor exec, pSTree item)
-{
-    Expr res;
-    res.type = VT_INT;
-    res.val_int = item->int_val;
-    return res;
-}
-
-Expr load_char(pExecutor exec, pSTree item)
-{
-    Expr res;
-    res.type = VT_CHAR;
-    res.val_char = item->char_val;
-    return res;
-}
-
-Expr load_string(pExecutor exec, pSTree item)
-{
-    // TODO: register string somewhere to be able to free it
-    Expr res;
-    res.type = VT_STRING;
-    res.val_str = item->str_val;
-    return res;
-}
-
-Expr load_item(pExecutor exec, pSTree item)
-{
-    switch (item->type)
-    {
-    case NODE_LIST:
-        return exec_load_tree(exec, item->child);
-    case NODE_NAME:
-        return load_atom(exec, item);
-    case NODE_INT:
-        return load_int(exec, item);
-    case NODE_CHAR:
-        return load_char(exec, item);
-    case NODE_STR:
-        return load_string(exec, item);
-    default:
-        log("load_item: unknown node type");
-        return expr_none();
-    }
-}
-
-Expr exec_load_tree(pExecutor exec, pSTree tree)
-{
-    if (tree == NULL) return exec->nil;
-
-    // Load item
-    Expr item = load_item(exec, tree);
-    if (item.type == VT_NONE)
-    {
-        log("exec_load_tree: item loading failed");
-        return expr_none();
-    }
-
-    // Load tail
-    Expr tail = exec_load_tree(exec, tree->next);
-    if (tail.type == VT_NONE)
-    {
-        log("exec_load_tree: tail loading failed");
-        return expr_none();
-    }
-
-    // Make pair
-    size_t pair = add_pair(exec);
-    if (pair == EXPR_ERROR)
-    {
-        log("exec_load_tree: add_pair failed");
-        return expr_none();
-    }
-
-    exec->cars[pair] = item;
-    exec->cdrs[pair] = tail;
-
-    Expr res;
-    res.type = VT_PAIR;
-    res.val_pair = pair;
-    return res;
+    return exec_eval_all(exec, exec->global, exec->code);
 }
 
 Expr exec_builtin_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
@@ -230,27 +276,137 @@ Expr exec_builtin_function(pExecutor exec, pFunction func, pContext callContext,
     return res;
 }
 
-Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc)
+// -1 too few
+//  0 accepted
+// +1 too many
+int check_args_count(pUserFunction func, int argc)
 {
-    pUserFunction user = func->user;
-    if (argc != user->argc)
+    // Less than number of required arguments
+    if (argc < func->argc)
+        return -1;
+    // Rest is present so any big number is accepted
+    if (func->rest.type != VT_NONE)
+        return 0;
+    // Less than number of required and optional arguments
+    if (argc <= func->argc + func->optc) // Not too many
+        return 0;
+    // Too many
+    return 1;
+}
+
+int bind_req_and_opt_args(pExecutor exec, pContext execContext, pUserFunction func, Expr *args, int argc)
+{
+    int fullc = func->argc + func->optc;
+    for (int i = 0; i < fullc; i++)
     {
-        log("exec_function: wrong number of parameters");
-        exit(1);
-    }
-    pContext execContext = context_inherit(func->context);
-    for (int i = 0; i < argc; i++)
-    {
-        Expr value = exec_eval(exec, callContext, args[i]);
-        int bind_res = context_bind(execContext, user->args[i].val_atom, value);
-        if (bind_res == MAP_FAILED)
+        Expr var;
+        if (i < func->argc)
+            var = func->args[i];
+        else
+            var = func->opt[i - func->argc];
+
+        Expr value;
+        if (i < argc)
+            value = args[i];
+        else
+            value = func->def[i - func->argc];
+
+        if (context_bind(execContext, var.val_atom, value) == MAP_FAILED)
         {
-            log("exec_user_function: context_bind failed");
-            exit(1);
+            log("bind_req_and_opt_args: context_bind failed");
+            return 0;
         }
     }
+    return 1;
+}
+
+int bind_rest(pExecutor exec, pContext execContext, pUserFunction func, Expr *args, int argc)
+{
+    int fullc = func->argc + func->optc;
+    if (func->rest.type != VT_NONE) // Rest present
+    {
+        Expr rest_value = exec->nil;
+        int restc = argc - fullc;
+        if (restc > 0)
+            rest_value = make_list(exec, args + fullc, restc);
+
+        if (context_bind(execContext, func->rest.val_atom, rest_value) == MAP_FAILED)
+        {
+            log("bind_rest: context_bind failed");
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int user_function_bind_args(pExecutor exec, pContext execContext, pContext callContext, pUserFunction func, Expr *args, int argc)
+{
+    if (!bind_req_and_opt_args(exec, execContext, func, args, argc))
+    {
+        return 0;
+    }
+    if (!bind_rest(exec, execContext, func, args, argc))
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Expr *args, int argc, int expand)
+{
+    pUserFunction user = func->user;
+    int check_res = check_args_count(user, argc);
+    if (check_res != 0)
+    {
+        logf("exec_user_function: too %s arguments", check_res == -1 ? "few" : "many");
+        exit(1);
+    }
+    // Eval arguments
+    Expr *values = malloc(argc * sizeof(Expr));
+    if (func->type != FT_USER_MACRO)
+    {
+        if (values == NULL)
+        {
+            log("exec_user_function: malloc failed");
+            exit(1);
+        }
+        for (int i = 0; i < argc; i++)
+            values[i] = exec_eval(exec, callContext, args[i]);
+    }
+    else
+    {
+        for (int i = 0; i < argc; i++)
+            values[i] = args[i];
+    }
+    // Bind arguments
+    pContext execContext = context_inherit(func->context);
+    if (!user_function_bind_args(exec, execContext, callContext, user, values, argc))
+    {
+        log("exec_user_function: user_function_bind_args failed");
+        free(values);
+        exit(1);
+    }
+    free(values);
+    // Push context
+    if (!context_stack_push(exec->stack, execContext))
+    {
+        log("exec_user_function: context_stack_push failed");
+        exit(1);
+    }
+    // Execute
     Expr res = exec_eval_all(exec, execContext, user->body);
+    // Pop context
+    if (!context_stack_pop(exec->stack))
+    {
+        log("exec_user_function: context_stack_pop failed");
+        exit(1);
+    }
     context_unlink(execContext);
+    // Execute return
+    if (func->type == FT_USER_MACRO && !expand)
+        res = exec_eval(exec, callContext, res);
+
     return res;
 }
 
@@ -258,14 +414,36 @@ Expr exec_function(pExecutor exec, pContext callContext, pFunction func, Expr *a
 {
     if (func->type == FT_BUILTIN)
         return exec_builtin_function(exec, func, callContext, args, argc);
-    else if (func->type == FT_USER)
-        return exec_user_function(exec, func, callContext, args, argc);
+    else if (func->type == FT_USER || func->type == FT_USER_MACRO)
+        return exec_user_function(exec, func, callContext, args, argc, 0);
     else
     {
         log("exec_function: invalid_function");
         // TODO: print debug info
         exit(1);
     }
+}
+
+Expr get_function(pExecutor exec, pContext context, Expr list_head)
+{
+    if (list_head.type == VT_ATOM)
+    {
+        Expr macro;
+        if (context_get_macro(context, list_head.val_atom, &macro) == MAP_SUCCESS)
+        {
+            return dereference(macro);
+        }
+    }
+    Expr func = exec_eval(exec, context, list_head);
+    if (func.type & VT_POINTER)
+        func = dereference(func);
+
+    // if value is macro it is unregistered macro.
+    if (func.type != VT_FUNC_VAL || func.val_func->type == FT_USER_MACRO)
+    {
+        return expr_none();
+    }
+    return func;
 }
 
 Expr exec_eval(pExecutor exec, pContext context, Expr expr)
@@ -288,10 +466,10 @@ Expr exec_eval(pExecutor exec, pContext context, Expr expr)
     int len;
     Expr *list = get_list(exec, expr, &len);
 
-    Expr func = exec_eval(exec, context, list[0]);
-    if (func.type != VT_FUNC)
+    Expr func = get_function(exec, context, list[0]);
+    if (is_none(func))
     {
-        log("eval: list head not a function");
+        log("eval: list head not a function or registered macro");
         // TODO: print debug information
         exit(1);
     }
@@ -300,62 +478,178 @@ Expr exec_eval(pExecutor exec, pContext context, Expr expr)
     return result;
 }
 
+Expr exec_eval_array(pExecutor exec, pContext context, Expr *array, int len)
+{
+    Expr res = exec->nil;
+    for (int i = 0; i < len; i++)
+    {
+        res = exec_eval(exec, context, array[i]);
+    }
+    return res;
+}
 Expr exec_eval_all(pExecutor exec, pContext context, Expr expr)
 {
     int len;
     Expr *list = get_list(exec, expr, &len);
-
-    Expr res;
-    for (int i = 0; i < len; i++)
-    {
-        res = exec_eval(exec, context, list[i]);
-    }
+    Expr res = exec_eval_array(exec, context, list, len);
+    free(list);
     return res;
+}
+Expr exec_macroexpand(pExecutor exec, pContext context, pFunction macro, Expr *args, int len)
+{
+    if (macro->type != FT_USER_MACRO)
+        return expr_none();
+    else
+        return exec_user_function(exec, macro, context, args, len, 1);
+}
+
+char *normalize_name(char *name)
+{
+    char *copy = strdup(name);
+    if (copy == NULL)
+    {
+        perror("add_atom: strdup failed");
+        return NULL;
+    }
+    strtolower(copy);
+    return copy;
+}
+
+#define FIND_PLACE_SUCCESS 0
+#define FIND_PLACE_EXISTS 1
+#define FIND_PLACE_ERROR 2
+int find_place_for_atom(pExecutor exec, char *name, size_t *place)
+{
+    size_t free_pos = EXPR_ERROR;
+    for (size_t i = 0; i < exec->atomsCount; i++)
+    {
+        if (exec->atomsFlags[i] & GC_USED)
+        {
+            if (strcmp(name, exec->atoms[i]) == 0)
+            {
+                *place = i;
+                return FIND_PLACE_EXISTS;
+            }
+        }
+        else if (free_pos == EXPR_ERROR)
+        {
+            free_pos = i;
+        }
+    }
+    if (free_pos == EXPR_ERROR)
+        return FIND_PLACE_ERROR;
+    *place = free_pos;
+    return FIND_PLACE_SUCCESS;
+}
+
+int find_place_for_pair(pExecutor exec, size_t *place)
+{
+    for (size_t i = 0; i < exec->atomsCount; i++)
+    {
+        if (!(exec->pairsFlags[i] & GC_USED))
+        {
+            *place = i;
+            return FIND_PLACE_SUCCESS;
+        }
+    }
+    *place = EXPR_ERROR;
+    return FIND_PLACE_ERROR;
+}
+
+size_t find_atom(pExecutor exec, char *name)
+{
+    // Create name copy
+    char *copy = normalize_name(name);
+    size_t found;
+    int res = find_place_for_atom(exec, copy, &found);
+    free(copy);
+    if (res != FIND_PLACE_EXISTS)
+        return EXPR_NOT_FOUND;
+    return found;
 }
 
 size_t add_atom(pExecutor exec, char *name)
 {
     // Create name copy
-    char *copy = strdup(name);
-    if (copy == NULL)
+    char *copy = normalize_name(name);
+    size_t found;
+    int res = find_place_for_atom(exec, copy, &found);
+    if (res == FIND_PLACE_ERROR)
     {
-        perror("add_atom: strdup failed");
-        return EXPR_ERROR;
-    }
-    strtolower(copy);
-    // Search for existing atom with such name
-    for (size_t i = 0; i < exec->atomsCount; i++)
-    {
-        if (strcmp(copy, exec->atoms[i]) == 0)
+        // free unused memory and try again
+        gc_collect(exec);
+        res = find_place_for_atom(exec, copy, &found);
+        if (res == FIND_PLACE_ERROR)
         {
+            log("add_atom: out of memory");
             free(copy);
-            return i;
+            return EXPR_ERROR;
         }
     }
-    // Atom not exists. Create it!
-    if (exec->atomsCount == MAX_ATOMS)
+    if (res == FIND_PLACE_EXISTS)
     {
-        log("add_atom: limit exceeded");
-        return EXPR_ERROR;
+        free(copy);
+        return found;
     }
-    exec->atoms[exec->atomsCount] = copy;
 
-    size_t res = exec->atomsCount;
-    exec->atomsCount++;
-    return res;
+    exec->atomsFlags[found] = GC_USED;
+    exec->atoms[found] = copy;
+    return found;
+}
+void del_atom(pExecutor exec, size_t atom)
+{
+    exec->atomsFlags[atom] = GC_NONE;
+    free(exec->atoms[atom]);
 }
 
 size_t add_pair(pExecutor exec)
 {
-    if (exec->pairsCount == MAX_PAIRS)
+    size_t place;
+    int res = find_place_for_pair(exec, &place);
+    if (res == FIND_PLACE_ERROR)
     {
-        log("add_pair: limit exceeded");
-        return EXPR_ERROR;
+        // free unused memory and try again
+        gc_collect(exec);
+        res = find_place_for_pair(exec, &place);
+        if (res == FIND_PLACE_ERROR)
+        {
+            log("add_pair: out of memory");
+            return EXPR_ERROR;
+        }
     }
+    exec->pairsFlags[place] = GC_USED;
+    return place;
+}
+void del_pair(pExecutor exec, size_t pair)
+{
+    exec->pairsFlags[pair] = GC_NONE;
+}
 
-    int res = exec->pairsCount;
-    exec->pairsCount++;
-    return res;
+Expr dereference(Expr ptr)
+{
+    if (!(ptr.type & VT_POINTER))
+        return expr_none();
+    return ptr.val_ptr->value;
+}
+Expr get_head(pExecutor exec, Expr pair)
+{
+    if (pair.type != VT_PAIR) return expr_none();
+    return exec->cars[pair.val_pair];
+}
+Expr get_tail(pExecutor exec, Expr pair)
+{
+    if (pair.type != VT_PAIR) return expr_none();
+    return exec->cdrs[pair.val_pair];
+}
+void set_head(pExecutor exec, Expr pair, Expr value)
+{
+    if (pair.type != VT_PAIR) return;
+    exec->cars[pair.val_pair] = value;
+}
+void set_tail(pExecutor exec, Expr pair, Expr value)
+{
+    if (pair.type != VT_PAIR) return;
+    exec->cdrs[pair.val_pair] = value;
 }
 
 int get_len(pExecutor exec, Expr expr)
@@ -403,78 +697,144 @@ Expr *get_list(pExecutor exec, Expr expr, int *len)
     return arr;
 }
 
+Expr make_atom(pExecutor exec, char *name)
+{
+    size_t atom = add_atom(exec, name);
+    if (atom == EXPR_ERROR)
+    {
+        log("make_atom: add_atom failed");
+        return expr_none();
+    }
+
+    Expr res;
+    res.type = VT_ATOM;
+    res.val_atom = atom;
+    return res;
+}
+Expr make_int(pExecutor exec, long value)
+{
+    Expr res;
+    res.type = VT_INT;
+    res.val_int = value;
+    return res;
+}
+Expr make_char(pExecutor exec, char value)
+{
+    Expr res;
+    res.type = VT_CHAR;
+    res.val_char = value;
+    return res;
+}
+Expr make_string(pExecutor exec, char *value)
+{
+    char *copy = strdup(value);
+    if (copy == NULL)
+    {
+        perror("make_string: strdup failed");
+        return expr_none();
+    }
+
+    Expr res;
+    res.type = VT_STRING_VAL;
+    res.val_str = copy;
+
+    Expr ptr = gc_register(exec->heap, res);
+    if (is_none(ptr))
+    {
+        log("make_string: gc_register failed");
+        free(copy);
+        return expr_none();
+    }
+    return ptr;
+}
+Expr make_function(pExecutor exec, pFunction value)
+{
+    Expr res;
+    res.type = VT_FUNC_VAL;
+    res.val_func = value;
+
+    Expr ptr = gc_register(exec->heap, res);
+    if (is_none(ptr))
+    {
+        log("make_function failed");
+        return expr_none();
+    }
+    return ptr;
+}
+Expr make_builtin_function(pExecutor exec, pBuiltinFunction func, pContext context)
+{
+    pFunction funcval = create_function();
+    if (funcval == NULL)
+    {
+        log("make_builtin_function: create_function failed");
+        return expr_none();
+    }
+    funcval->type = FT_BUILTIN;
+    funcval->context = context;
+    funcval->builtin = func;
+    context_link(context);
+
+    Expr res = make_function(exec, funcval);
+    if (is_none(res))
+    {
+        log("make_builtin_function: make_function failed");
+        return expr_none();
+    }
+    return res;
+}
+Expr make_user_function(pExecutor exec, pUserFunction func, pContext context, enum FunctionType type)
+{
+    pFunction funcval = create_function();
+    if (funcval == NULL)
+    {
+        log("make_user_function: create_function failed");
+        return expr_none();
+    }
+    funcval->type = type;
+    funcval->context = context;
+    funcval->user = func;
+    context_link(context);
+
+    Expr res = make_function(exec, funcval);
+    if (is_none(res))
+    {
+        log("make_user_function: make_function failed");
+        return expr_none();
+    }
+    return res;
+}
+
+Expr make_pair(pExecutor exec, Expr car, Expr cdr)
+{
+    size_t pair = add_pair(exec);
+    if (pair == EXPR_ERROR)
+    {
+        log("make_list: add_pair failed");
+        return expr_none();
+    }
+    exec->cars[pair] = car;
+    exec->cdrs[pair] = cdr;
+
+    Expr res;
+    res.type = VT_PAIR;
+    res.val_pair = pair;
+    return res;
+}
+
 Expr make_list(pExecutor exec, Expr *arr, int len)
 {
     Expr list = exec->nil;
     for (int i = len - 1; i >= 0; i--)
     {
-        size_t pair = add_pair(exec);
-        if (pair == EXPR_ERROR)
+        Expr tail = make_pair(exec, arr[i], list);
+        if (tail.type == VT_NONE)
         {
-            log("make_list: add_pair failed");
+            log("make_list: make_pair failed");
             return expr_none();
         }
-        exec->cars[pair] = arr[i];
-        exec->cdrs[pair] = list;
-        Expr tail;
-        tail.type = VT_PAIR;
-        tail.val_pair = pair;
         list = tail;
     }
     return list;
-}
-
-pFunction create_lambda(pExecutor exec, pContext defContext, Expr *args, int argc, Expr *body, int len)
-{
-    // Check arguments list
-    for (int i = 0; i < 0; i++)
-    {
-        if (args[i].type != VT_ATOM)
-        {
-            log("create_lambda: all arguments must be atoms");
-            return NULL;
-        }
-    }
-
-    Expr bodyExpr = make_list(exec, body, len);
-    if (bodyExpr.type == VT_NONE)
-    {
-        log("create_lambda: make_list failed");
-        return NULL;
-    }
-
-    Expr *argsCopy = malloc(argc * sizeof(Expr));
-    if (argsCopy == NULL)
-    {
-        log("create_lambda: malloc failed");
-        return NULL;
-    }
-    memcpy(argsCopy, args, argc * sizeof(Expr));
-
-    pUserFunction user = create_user_function();
-    if (user == NULL)
-    {
-        log("create_lambda: create_user_function failed");
-        free(argsCopy);
-        return NULL;
-    }
-    user->args = argsCopy;
-    user->argc = argc;
-    user->body = bodyExpr;
-
-    pFunction func = create_function();
-    if (func == NULL)
-    {
-        log("create_lambda: create_function failed");
-        free_user_function(user); // this will also free argsCopy
-        return NULL;
-    }
-    func->type = FT_USER;
-    func->context = defContext;
-    func->user = user;
-    context_link(defContext);
-
-    return func;
 }
 
 // struct Function functions
@@ -489,6 +849,7 @@ pFunction create_function()
     }
     res->type = FT_NONE;
     res->context = NULL;
+    res->gc_index = 0;
     return res;
 }
 
@@ -496,9 +857,12 @@ void free_function(pFunction func)
 {
     switch (func->type)
     {
-        case FT_BUILTIN: break;
+        case FT_BUILTIN:
+            break;
+        case FT_USER_MACRO:
         case FT_USER:
             free_user_function(func->user);
+            break;
         default:
             log("free_function: unknown function type. Unable to free");
             break;
@@ -521,6 +885,7 @@ pUserFunction create_user_function()
 void free_user_function(pUserFunction func)
 {
     free(func->args);
+    free(func->opt);
+    free(func->def);
     free(func);
 }
-

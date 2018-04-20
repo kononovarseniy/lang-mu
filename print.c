@@ -99,6 +99,9 @@ void print_string(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, 
 {
     print_indent(f, indent, flags);
     print_quotation(f, &flags);
+
+    expr = dereference(expr);
+
     if (flags & PF_UNESCAPE)
         fprintf(f, "%s", expr.val_str);
     else
@@ -131,6 +134,8 @@ void print_func(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, in
     print_indent(f, indent, flags);
     print_quotation(f, &flags);
 
+    expr = dereference(expr);
+
     // TODO: implement print_func
     log("print_func: not implemented");
     fprintf(f, "`print_func: not implemented`\n");
@@ -151,13 +156,13 @@ void print_expression(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags fla
     case VT_INT:
         print_int(f, exec, expr, flags, indent);
         break;
-    case VT_STRING:
+    case VT_STRING_PTR:
         print_string(f, exec, expr, flags, indent);
         break;
     case VT_CHAR:
         print_char(f, exec, expr, flags, indent);
         break;
-    case VT_FUNC:
+    case VT_FUNC_PTR:
         print_func(f, exec, expr, flags, indent);
         break;
     default:

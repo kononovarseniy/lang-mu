@@ -17,6 +17,9 @@ int yyerror(char *s);
 
 pSTree parsing_result;
 
+pSTree decorate(char *atom, pSTree item);
+pSTree parser_create_atom(char *atom);
+
 %}
 
 %union
@@ -38,6 +41,9 @@ pSTree parsing_result;
 %token              CLOSE_BRACE
 
 %token              QUOTE
+%token              BACKQUOTE
+%token              COMMA
+%token              COMMA_ATSIGN
 
 %token  <name>      NAME
 %token  <int_val>   INT_LITERAL
@@ -61,11 +67,9 @@ list:   OPEN_PAREN items CLOSE_PAREN    {
         }
         ;
 
-item:   NAME {
-            $$ = create_stree();
-            $$->type = NODE_NAME;
-            $$->name = copystr($1);
-        }
+item:   NAME { $$ = parser_create_atom($1); free($1); }
+        | COMMA         { $$ = parser_create_atom("#:comma"); }
+        | COMMA_ATSIGN  { $$ = parser_create_atom("#:comma_atsign"); }
         | INT_LITERAL {
             $$ = create_stree();
             $$->type = NODE_INT;
@@ -89,14 +93,8 @@ item:   NAME {
         | quoted
         ;
 
-quoted: QUOTE item {
-            $$ = create_stree();
-            $$->type = NODE_LIST;
-            $$->child = create_stree();
-            $$->child->type = NODE_NAME;
-            $$->child->name = copystr("quote");
-            $$->child->next = $item;
-        }
+quoted: QUOTE item          { $$ = decorate("quote", $item); }
+        | BACKQUOTE item    { $$ = decorate("backquote", $item); }
         ;
 
 items:  { $$ = NULL; }
@@ -107,6 +105,25 @@ items:  { $$ = NULL; }
         ;
 
 %%
+
+pSTree decorate(char *atom, pSTree item)
+{
+    pSTree res = create_stree();
+    res->type = NODE_LIST;
+    res->child = create_stree();
+    res->child->type = NODE_NAME;
+    res->child->name = copystr(atom);
+    res->child->next = item;
+    return res;
+}
+
+pSTree parser_create_atom(char *atom)
+{
+    pSTree res = create_stree();
+    res->type = NODE_NAME;
+    res->name = copystr(atom);
+    return res;
+}
 
 int yyerror(char *s)
 {

@@ -51,6 +51,15 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="exec_builtin.h" />
+		<Unit filename="exec_types.h" />
+		<Unit filename="gc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="gc.h" />
+		<Unit filename="load.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="load.h" />
 		<Unit filename="log.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
