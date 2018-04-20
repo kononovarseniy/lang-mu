@@ -14,11 +14,16 @@ void free_longnum(pLongNum a); //Удаление числа
 pLongNum longnum_parse(char *num, int s); //Строка в число
 char *longnum_to_string(pLongNum a); //Число в строку - не работает
 double longnum_to_double(pLongNum a); //Длинное число в число с плавающей точкой
+//pLongNum longnum_trans_to_dec(pLongNum a, int s); //Перевод в десятичную СС - в разработке
+//pLongNum longnum_trans_from_dec(pLongNum a, int s); //Перевод из десятичной СС - в разработке
 
 //Функции с основными арифметическими действиями
-pLongNum longnum_sum(pLongNum a, pLongNum b); //"+" - работает частично
-//pLongNum longnum_def(pLongNum a, pLongNum b); //"-" - не работает
+pLongNum longnum_sum(pLongNum a, pLongNum b); //"+"
+pLongNum longnum_def(pLongNum a, pLongNum b); //"-"
 pLongNum longnum_mult(pLongNum a, pLongNum b); //"*"
+pLongNum longnum_division_int(pLongNum a, pLongNum b); //Целое от деления
+pLongNum longnum_division_mod(pLongNum a, pLongNum b); //Остаток от деления
+pLongNum longnum_greatest_common_divisor(pLongNum a, pLongNum b); //Наибольший общий делитель
 
 //Функции сравнения двух длинных чисел
 _Bool longnum_greater(pLongNum a, pLongNum b); //">"

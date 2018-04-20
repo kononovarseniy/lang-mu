@@ -54,13 +54,12 @@ void longnum_nulldel(pLongNum a)
         i--;
     longnum_remem(a, i);
 }
-
 void longnum_print(pLongNum a)
 {
     if(a->s == -1)
         printf("-");
     for(int i = (a->l - 1); i >= 0; i--)
-        printf("%d", *(a->n + i));
+        printf("%d|", *(a->n + i));
     printf("\n");
 }
 int longnum_ntd(char s, int i) //Посимвольное преобразование в "цифры"
@@ -174,7 +173,7 @@ _Bool longnum_equal(pLongNum a, pLongNum b) //"="
     if(a->s == b->s)
         if(a->l == b->l)
             for(int i = 0; i < a->l; i++)
-            {    
+            {
                 if(*(a->n + i) != *(b->n + i))
                     break;
                 else
@@ -206,11 +205,23 @@ int longnum_compare(pLongNum a, pLongNum b)
     return e;
 }
 
-//Конвертация типов
+//Конвертация типов и систем счисления
+/*pLongNum longnum_from_int(int num)
+{
+    pLongNum a = malloc(sizeof(LongNum));
+    if(num < 0) a->s = -1;
+    else a->s = 1;
+
+    a->l = (int)log10(num) + 1;
+    for(int i = 0; i < a->l; i++)
+    {
+        *(a->n + i) = (int)(num / pow(10, i)) % (int)pow(10, a->l - i - 1);
+    }
+    longnum_nulldel(a);
+    return a;
+}*/
 pLongNum longnum_parse(char *num, int s) //Преобразование строки в длинное число
 {
-    //Не работает с системами счисления, отличными от десятичной, пока
-
     pLongNum a = malloc(sizeof(LongNum));
 
     if(longnum_ntd(*num, s) == -1)
@@ -228,9 +239,7 @@ pLongNum longnum_parse(char *num, int s) //Преобразование стро
     {
         if((longnum_ntd(*(num + k), s) != -1) && (longnum_ntd(*(num + k), s) != -2))
         {
-            *(a->n + a->l - k - 1) += longnum_ntd(*(num + k), s);
-            *(a->n + a->l - k) += (int)(*(a->n + a->l - k - 1) / 10);
-            *(a->n + a->l - k - 1) %= 10;
+            *(a->n + a->l - k - 1) = longnum_ntd(*(num + k), s);
         }
         k++;
     }
@@ -243,13 +252,14 @@ char *longnum_to_string(pLongNum a)
 {
         int l = a->l;
         if(a->s == -1) l++;
-        char *num = malloc(l * sizeof(char));
-        
+        char *num = malloc(l + 1 * sizeof(char));
+
         for(int i = 0; i < a->l; i++)
         {
-                *(num + l - i) = (char)(*(a->n + i) + '0');
+                *(num + l - i - 1) = (char)(*(a->n + i) + '0');
         }
         if(a->s == -1) *num = '-';
+        *(num + l) = 0;
         return num;
 }
 double longnum_to_double(pLongNum a)
@@ -263,21 +273,43 @@ double longnum_to_double(pLongNum a)
         else
         {
                 double numm = 0;
-                double nume = pow(1e+1, a->l % 100) * pow(1e+10, (a->l % 10) / 10) * pow(1e+100, a->l / 100);
-                for(int i = 0; i < 16; i++)
+                for(int i = 0; i < 10; i++)
                     numm += *(a->n + a->l - i) * pow(10, -i);
-                num = numm * nume;
+                num = numm * pow(10, a->l);
         }
         return num;
 }
 
-//Арифметические операции
-pLongNum longnum_def(pLongNum a, pLongNum b) //Разность длинных числел
+/*pLongNum longnum_trans_to_dec(pLongNum a, int s)
 {
     pLongNum c = malloc(sizeof(LongNum));
+    pLongNum d = malloc(sizeof(LongNum));
+    pLongNum b = malloc(sizeof(LongNum));
+    b->l = 2;
+    longnum_mem(b);
+    b->s = a->s;
+    *(b->n) = *(a->n + a->l - 1);
+    *(b->n + 1) = (int)(*(b->n) / 10);
+    *(b->n) %= 10;
 
-    return c;
+    for(int i = 1; i < a->l - 1; i++)
+    {
+        d = longnum_from_int(*(a->n + a->l - 1 - i));
+        c = longnum_mult(b, d);
+        d = longnum_from_int(*(a->n + a->l - 2 - i));
+        b = longnum_sum(c, d);
+    }
+
+    longnum_nulldel(b);
+
+    return b;
 }
+pLongNum longnum_trans_from_dec(pLongNum a, int s)
+{
+
+}*/
+
+//Арифметические операции
 pLongNum longnum_sum(pLongNum a, pLongNum b) //Сумма длинных чисел
 {
     pLongNum c = malloc(sizeof(LongNum));
@@ -323,15 +355,74 @@ pLongNum longnum_sum(pLongNum a, pLongNum b) //Сумма длинных чис�
     longnum_nulldel(c);
     return c;
 }
+pLongNum longnum_def(pLongNum a, pLongNum b) //Разность длинных числел
+{
+    pLongNum c = malloc(sizeof(LongNum));
+
+    if(a->s != b->s)
+    {
+        a->s *= -1;
+        c = longnum_sum(a, b);
+        a->s *= -1;
+        c->s = a->s;
+        return c;
+    }
+    else
+    {
+        if(longnum_greater(b, a))
+        {
+            c = longnum_def(b, a);
+            c->s *= -1;
+            return c;
+        }
+        else
+        {
+            c->s = a->s;
+
+            if(a->l < b->l)
+            {
+                c->l = a->l + 1;
+            }
+            else
+            {
+                c->l = b->l + 1;
+            }
+
+            longnum_mem(c);
+            longnum_remem(a, c->l);
+            longnum_remem(b, c->l);
+            *c->n = 0;
+
+            for(int i = 0; i < c->l; i++)
+            {
+                *(c->n + i) += *(a->n + i) - *(b->n + i);
+                if(*(c->n + i) < 0)
+                {
+                    *(c->n + i + 1) = -1;
+                    *(c->n + i) += 10;
+                }
+                else
+                {
+                    *(c->n + i + 1) = 0;
+                }
+            }
+
+            longnum_nulldel(a);
+            longnum_nulldel(b);
+            longnum_nulldel(c);
+            return c;
+        }
+    }
+}
 pLongNum longnum_mult(pLongNum a, pLongNum b) //Произведение длинных чисел
 {
     pLongNum c = malloc(sizeof(LongNum));
-    
+
     c->l = a->l + b->l;
     c->s = a->s * b->s;
     longnum_mem(c);
     *c->n = 0;
-    
+
     for(int i = 0; i < b->l; i++)
     {
             pLongNum p = malloc(sizeof(LongNum));
@@ -352,33 +443,119 @@ pLongNum longnum_mult(pLongNum a, pLongNum b) //Произведение дли�
             }
             free_longnum(p);
     }
-    
+
     longnum_nulldel(c);
-    
+
     return c;
+}
+pLongNum longnum_division_int(pLongNum a, pLongNum b) //Целое от деления
+{
+    int bs = b->s;
+    b->s = 1;
+    pLongNum c = malloc(sizeof(LongNum));
+    c = a;
+    c->s = 1;
+    pLongNum e = malloc(sizeof(LongNum));
+    pLongNum d = malloc(sizeof(LongNum));
+    d->s = a->s * b->s;
+    d->l = 1;
+    longnum_mem(d);
+    *d->n = 0;
+
+    while(!longnum_less(c, b))
+    {
+        e = longnum_def(c, b);
+        c = e;
+        d = longnum_sum(d, longnum_parse("1", 10));
+    }
+
+    b->s = bs;
+    d->s = a->s * b->s;
+    free_longnum(c);
+    //free_longnum(e);
+
+    return d;
+}
+pLongNum longnum_division_mod(pLongNum a, pLongNum b) //Остаток от деления
+{
+    pLongNum c = malloc(sizeof(LongNum));
+    pLongNum d = malloc(sizeof(LongNum));
+    pLongNum e = malloc(sizeof(LongNum));
+
+    d = longnum_division_int(a, b);
+    e = longnum_mult(b, d);
+    c = longnum_def(a, e);
+    c->s = 1;
+
+    free_longnum(d);
+    free_longnum(e);
+
+    return c;
+}
+pLongNum longnum_greatest_common_divisor(pLongNum a, pLongNum b) //Наибольший общий делитель
+{
+    pLongNum c = malloc(sizeof(LongNum));
+    c = a;
+    pLongNum d = malloc(sizeof(LongNum));
+    d = b;
+    pLongNum e = malloc(sizeof(LongNum));
+
+    while(!longnum_equal(a, b))
+    {
+        if(longnum_greater(a, b))
+        {
+            a = longnum_def(a, b);
+        }
+        else
+        {
+            b = longnum_def(b, a);
+        }
+    }
+    e = a;
+    a = c;
+    b = d;
+    free_longnum(c);
+    free_longnum(d);
+
+    return e;
 }
 
 // Весь тестовый код здесь
-int main()
+int longnum_test_main()
 {
     pLongNum a = create_longnum();
     pLongNum b = create_longnum();
     pLongNum c = create_longnum();
 
-    a = longnum_parse("232323", 10);
-    b = longnum_parse("292929", 10);
+    a = longnum_parse("255", 10);
+    b = longnum_parse("25", 10);
 
     longnum_print(a);
     longnum_print(b);
 
-    printf("%lf\n", longnum_to_double(a));
-    
+    //printf("%lf\n", longnum_to_double(a));
+    //printf("%s\n", longnum_to_string(a));
+
     //c = longnum_sum(a, b);
     //longnum_print(c);
 
     //c = longnum_mult(a, b);
     //longnum_print(c);
     //printf("%s", longnum_to_string(c));
+
+    //c = longnum_def(a, b);
+    //longnum_print(c);
+
+    //c = longnum_greatest_common_divisor(a, b);
+    //longnum_print(c);
+
+    c = longnum_division_int(a, b);
+    longnum_print(c);
+
+    c = longnum_division_mod(a, b);
+    longnum_print(c);
+    longnum_print(a);
+    longnum_print(b);
 
     free_longnum(a);
     free_longnum(b);
