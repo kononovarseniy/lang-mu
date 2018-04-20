@@ -55,10 +55,10 @@ Expr execute_program(pSTree code_tree)
 int main(int argc, char **argv)
 {
     longnum_test_main();
-    
-    pSTree code_tree = parse_file("tests/hello-world.mu");
-    execute_program(code_tree);
-    free_stree(code_tree);
+
+    //pSTree code_tree = parse_file("tests/hello-world.mu");
+    //execute_program(code_tree);
+    //free_stree(code_tree);
 
     return 0;
 }

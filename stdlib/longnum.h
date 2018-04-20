@@ -18,11 +18,11 @@ double longnum_to_double(pLongNum a); //Длинное число в число 
 //pLongNum longnum_trans_from_dec(pLongNum a, int s); //Перевод из десятичной СС - в разработке
 
 //Функции с основными арифметическими действиями
-pLongNum longnum_sum(pLongNum a, pLongNum b); //"+"
-pLongNum longnum_def(pLongNum a, pLongNum b); //"-"
-pLongNum longnum_mult(pLongNum a, pLongNum b); //"*"
-pLongNum longnum_division_int(pLongNum a, pLongNum b); //Целое от деления
-pLongNum longnum_division_mod(pLongNum a, pLongNum b); //Остаток от деления
+pLongNum longnum_add(pLongNum a, pLongNum b); //"+"
+pLongNum longnum_sub(pLongNum a, pLongNum b); //"-"
+pLongNum longnum_product(pLongNum a, pLongNum b); //"*"
+pLongNum longnum_div(pLongNum a, pLongNum b); //Целое от деления
+pLongNum longnum_rem(pLongNum a, pLongNum b); //Остаток от деления
 pLongNum longnum_greatest_common_divisor(pLongNum a, pLongNum b); //Наибольший общий делитель
 
 //Функции сравнения двух длинных чисел
