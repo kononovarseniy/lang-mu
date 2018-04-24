@@ -48,7 +48,6 @@ void longnum_remem(pLongNum a, int l)
     free (a->n);
     a->n = malloc(l * DIGIT_SIZE);
 
-
     for(int j = 0; j < l; j++)
     {
         if(j < a->l)
@@ -528,33 +527,73 @@ pLongNum longnum_product(pLongNum a, pLongNum b) //Произведение дл
 
     return c;
 }
+pLongNum longnum_product_10(pLongNum a, int d)
+{
+    if(a == NULL)
+    {
+        printf("longnum_product_10: NULL pointer\n");
+        exit(1);
+    }
+    if(d < 0)
+    {
+        printf("longnum_product_10: negative number\n");
+        exit(1);
+    }
+    int l = a->l;
+    longnum_remem(a, l + d);
+    for(int i = 0; i < a->l; i++)
+    {
+        if(i < l)
+        {
+            *(a->n + a->l - i - 1) = *(a->n + a->l - d - i - 1);
+        }
+        else
+        {
+            *(a->n + a->l - i - 1) = 0;
+        }
+    }
+    return a;
+}
 pLongNum longnum_div(pLongNum a, pLongNum b) //Целое от деления
 {
-    int bs = b->s;
-    b->s = 1;
-    pLongNum c = malloc(sizeof(LongNum));
-    c = a;
-    c->s = 1;
-    pLongNum e = malloc(sizeof(LongNum));
-    pLongNum d = malloc(sizeof(LongNum));
-    d->s = a->s * b->s;
-    d->l = 1;
-    longnum_mem(d);
-    *d->n = 0;
-
-    while(!longnum_less(c, b))
+    if(a == NULL || b == NULL)
     {
-        e = longnum_sub(c, b);
-        c = e;
-        d = longnum_add(d, longnum_parse("1", 10));
+        printf("longnum_div: NULL pointer\n");
+        exit(1);
     }
-
-    b->s = bs;
-    d->s = a->s * b->s;
-    free_longnum(c);
+    pLongNum div = longnum_parse("0", 10);
+    pLongNum one = longnum_parse("1", 10);
+    pLongNum nill = div;
+    if(longnum_greater(b, a))
+    {
+        return div;
+    }
+    pLongNum x = a;
+    pLongNum y = b;
+    pLongNum c;
+    pLongNum d;
+    pLongNum e;
+    int dl;
+    for(int i = 0; i < a->l; i++)
+    {
+        c = y;
+        dl = x->l - y->l;
+        if(dl > 1) c = longnum_product_10(y, dl - 1);
+        while(longnum_greater_or_equal(x, c))
+        {
+            d = longnum_sub(x, c);
+            x = d;
+            d = longnum_product_10(one, i);
+            e = div;
+            div = longnum_add(e , d);
+        }
+        longnum_nulldel(x);
+        if(longnum_equal(x, nill)) break;
+    }
+    //free_longnum(c);
+    //free_longnum(d);
     //free_longnum(e);
-
-    return d;
+    return div;
 }
 pLongNum longnum_rem(pLongNum a, pLongNum b) //Остаток от деления
 {
@@ -601,8 +640,8 @@ int longnum_test_main()
 {
     pLongNum a, b, c;
 
-    a = longnum_parse("255", 10);
-    b = longnum_parse("25", 10);
+    a = longnum_parse("100", 10);
+    b = longnum_parse("2", 10);
 
     longnum_print(a);
     longnum_print(b);
@@ -626,10 +665,13 @@ int longnum_test_main()
     c = longnum_div(a, b);
     longnum_print(c);
 
-    c = longnum_rem(a, b);
-    longnum_print(c);
-    longnum_print(a);
-    longnum_print(b);
+    //c = longnum_rem(a, b);
+    //longnum_print(c);
+    //longnum_print(a);
+    //longnum_print(b);
+
+    //c = longnum_product_10(a, 10);
+    //longnum_print(c);
 
     free_longnum(a);
     free_longnum(b);
