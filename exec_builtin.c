@@ -636,15 +636,15 @@ BUILTIN_FUNC(gensym)
         exit(1);
     }
     Expr counter = make_atom(exec, "*gensym-counter*");
-    if (counter.type == VT_NONE)
+    if (is_none(counter))
     {
-        log("gensym make_atom failed");
+        log("gensym: make_atom failed");
         exit(1);
     }
     Expr value;
-    if (context_get(defContext, counter.val_atom, &value) == MAP_FAILED)
+    if (context_get(defContext, counter.val_atom, &value) == MAP_FAILED || !is_int(value))
     {
-        value = exec_int_one(exec);
+        value = exec_long_one(exec);
         if (is_none(value))
         {
             log("gensym: exec_int_one failed");

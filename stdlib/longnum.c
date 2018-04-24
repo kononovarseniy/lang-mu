@@ -41,7 +41,7 @@ void longnum_mem(pLongNum a)
 }
 void longnum_remem(pLongNum a, int l)
 {
-    int *b = malloc(a->l * DIGIT_SIZE);
+    short *b = malloc(a->l * DIGIT_SIZE);
     for (int i = 0; i < a->l; i++)
         *(b + i) = *(a->n + i);
 
@@ -288,16 +288,18 @@ pLongNum longnum_from_int(int num)
 
     a->l = (int)log10(num) + 1;
     longnum_mem(a);
-    for(int i = 0; i < a->l; i++)
+    for (int i = 0; i < a->l; i++)
     {
-        *(a->n + i) = (int)(num / pow(10, i)) % (int)pow(10, a->l - i - 1);
+        int d = num % 10;
+        a->n[i] = d;
+        num /= 10;
     }
     longnum_nulldel(a);
     return a;
 }
 pLongNum longnum_parse(char *num, int s) //Преобразование строки в длинное число
 {
-    pLongNum a = malloc(sizeof(LongNum));
+    pLongNum a = create_longnum();
 
     if(longnum_ntd(*num, s) == -1)
         a->s = -1;
@@ -391,7 +393,7 @@ pLongNum longnum_trans_from_dec(pLongNum a, int s)
 //Арифметические операции
 pLongNum longnum_add(pLongNum a, pLongNum b) //Сумма длинных чисел
 {
-    pLongNum c = malloc(sizeof(LongNum));
+    pLongNum c = create_longnum();
 
     if(a->s == b->s)
     {
@@ -409,7 +411,7 @@ pLongNum longnum_add(pLongNum a, pLongNum b) //Сумма длинных чис�
         for(int i = 0; i < c->l; i++)
         {
             *(c->n + i) += *(a->n + i) + *(b->n + i);
-            *(c->n + i + 1) = (int)(*(c->n + i) / 10);
+            *(c->n + i + 1) = *(c->n + i) / 10;
             *(c->n + i) %= 10;
         }
     }
@@ -436,7 +438,7 @@ pLongNum longnum_add(pLongNum a, pLongNum b) //Сумма длинных чис�
 }
 pLongNum longnum_sub(pLongNum a, pLongNum b) //Разность длинных числел
 {
-    pLongNum c = malloc(sizeof(LongNum));
+    pLongNum c = create_longnum();
 
     if(a->s != b->s)
     {
@@ -495,7 +497,7 @@ pLongNum longnum_sub(pLongNum a, pLongNum b) //Разность длинных �
 }
 pLongNum longnum_product(pLongNum a, pLongNum b) //Произведение длинных чисел
 {
-    pLongNum c = malloc(sizeof(LongNum));
+    pLongNum c = create_longnum();
 
     c->l = a->l + b->l;
     c->s = a->s * b->s;
@@ -504,7 +506,7 @@ pLongNum longnum_product(pLongNum a, pLongNum b) //Произведение дл
 
     for(int i = 0; i < b->l; i++)
     {
-        pLongNum p = malloc(sizeof(LongNum));
+        pLongNum p = create_longnum();
         p->l = a->l + 1;
         longnum_mem(p);
         *p->n = 0;
@@ -609,11 +611,9 @@ pLongNum longnum_rem(pLongNum a, pLongNum b) //Остаток от делени�
 }
 pLongNum longnum_greatest_common_divisor(pLongNum a, pLongNum b) //Наибольший общий делитель
 {
-    pLongNum c = malloc(sizeof(LongNum));
-    c = a;
-    pLongNum d = malloc(sizeof(LongNum));
-    d = b;
-    pLongNum e = malloc(sizeof(LongNum));
+    pLongNum c = a;
+    pLongNum d = b;
+    pLongNum e = create_longnum();
 
     while(!longnum_equal(a, b))
     {
