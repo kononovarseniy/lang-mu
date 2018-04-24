@@ -28,6 +28,9 @@ void free_stree(pSTree tree)
     case NODE_NAME:
         free(tree->name);
         break;
+    case NODE_INT:
+        free_longnum(tree->int_val);
+        break;
     case NODE_LIST:
         if (tree->child != NULL)
             free_stree(tree->child);
