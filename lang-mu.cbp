@@ -51,6 +51,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="exec_builtin.h" />
+		<Unit filename="exec_math.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="exec_math.h" />
 		<Unit filename="exec_types.h" />
 		<Unit filename="gc.c">
 			<Option compilerVar="CC" />

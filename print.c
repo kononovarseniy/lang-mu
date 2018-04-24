@@ -91,7 +91,13 @@ void print_int(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int
 {
     print_indent(f, indent, flags);
     print_quotation(f, &flags);
-    fprintf(f, "%ld", expr.val_int);
+
+    expr = dereference(expr);
+
+    char * str = longnum_to_string(expr.val_int);
+    fprintf(f, "%s", str);
+    free(str);
+
     print_wrap(f, flags);
 }
 
@@ -153,7 +159,7 @@ void print_expression(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags fla
     case VT_PAIR:
         print_list(f, exec, expr, flags, indent);
         break;
-    case VT_INT:
+    case VT_INT_PTR:
         print_int(f, exec, expr, flags, indent);
         break;
     case VT_STRING_PTR:

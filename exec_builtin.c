@@ -5,6 +5,7 @@
 #include "log.h"
 
 #include "print.h"
+#include "exec_math.h"
 
 Expr set_impl(
               pExecutor exec,
@@ -331,21 +332,26 @@ BUILTIN_FUNC(xor)
 
 BUILTIN_FUNC(plus)
 {
-    long res = 0;
+    pLongNum sum = longnum_zero();
     for (int i = 0; i < argc; i++)
     {
         Expr value = exec_eval(exec, callContext, args[i]);
-        if (value.type != VT_INT)
+        if (value.type != VT_INT_PTR)
         {
             log("plus: integer expected");
             exit(1);
         }
-        res += value.val_int;
+        pLongNum newSum = longnum_add(sum, dereference(value).val_int);
+        free_longnum(sum);
+        sum = newSum;
     }
-    Expr expr;
-    expr.type = VT_INT;
-    expr.val_int = res;
-    return expr;
+    Expr res = make_int(exec, sum);
+    if (is_none(res))
+    {
+        log("plus: make_int failed");
+        exit(1);
+    }
+    return res;
 }
 
 BUILTIN_FUNC(cons)
@@ -638,11 +644,16 @@ BUILTIN_FUNC(gensym)
     Expr value;
     if (context_get(defContext, counter.val_atom, &value) == MAP_FAILED)
     {
-        value.type = VT_INT;
-        value.val_int = 1;
+        value = exec_int_one(exec);
+        if (is_none(value))
+        {
+            log("gensym: exec_int_one failed");
+            exit(1);
+        }
     }
 
-    for (int n = value.val_int;;n++)
+    #warning BROKEN!!! start loop from n == **gensym-counter**
+    for (int n = 1;;n++)
     {
         char name[7];
         sprintf(name, "#:%d", n);
@@ -660,7 +671,7 @@ BUILTIN_FUNC(gensym)
                 log("gensym: make_atom failed");
                 exit(1);
             }
-            value.val_int = n + 1;
+            value = exec_long_from_int(exec, n);
             if (context_set(defContext, counter.val_atom, value) == MAP_FAILED)
             {
                 log("gensym: context_bind failed");
@@ -730,9 +741,9 @@ BUILTIN_FUNC(gc_collect_builtin)
     gc_collectv(exec, &atoms, &pairs, &objects);
     Expr arr[3] =
     {
-        make_int(exec, atoms),
-        make_int(exec, pairs),
-        make_int(exec, objects)
+        exec_long_from_int(exec, atoms),
+        exec_long_from_int(exec, pairs),
+        exec_long_from_int(exec, objects)
     };
     Expr res = make_list(exec, arr, 3);
     return res;

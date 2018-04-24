@@ -1,6 +1,8 @@
 #ifndef LONGNUM_H_INCLUDED
 #define LONGNUM_H_INCLUDED
 
+
+#define DIGIT_SIZE sizeof(short)
 typedef struct LongNum
 {
     short *n;
@@ -10,8 +12,13 @@ typedef struct LongNum
 
 pLongNum create_longnum(); //Создание числа
 void free_longnum(pLongNum a); //Удаление числа
+pLongNum longnum_copy(pLongNum num);
+pLongNum longnum_zero();
+pLongNum longnum_one();
+pLongNum longnum_negative_one();
 
 pLongNum longnum_parse(char *num, int s); //Строка в число
+pLongNum longnum_from_int(int num);
 char *longnum_to_string(pLongNum a); //Число в строку - не работает
 double longnum_to_double(pLongNum a); //Длинное число в число с плавающей точкой
 //pLongNum longnum_trans_to_dec(pLongNum a, int s); //Перевод в десятичную СС - в разработке

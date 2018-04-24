@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <memory.h>
+#include "../log.h"
 
 //Работа с памятью
 pLongNum create_longnum()
@@ -10,7 +12,7 @@ pLongNum create_longnum()
     pLongNum res = malloc(sizeof(LongNum));
     if (res == NULL)
     {
-        printf("create_longnum: malloc failed\n");
+        perror("create_longnum: malloc failed\n");
         return NULL;
     }
     return res;
@@ -25,16 +27,26 @@ void free_longnum(pLongNum a)
 //Вспомогательные функции
 void longnum_mem(pLongNum a)
 {
-    a->n = malloc(a->l * sizeof(int));
+    if (a == NULL)
+    {
+        log("longnum_mem: NULL pointer");
+        exit(1);
+    }
+    a->n = malloc(a->l * DIGIT_SIZE);
+    if (a->n == NULL)
+    {
+        perror("longnum_mem: malloc failed");
+        exit(1);
+    }
 }
 void longnum_remem(pLongNum a, int l)
 {
-    int *b = malloc(a->l * sizeof(int));
+    int *b = malloc(a->l * DIGIT_SIZE);
     for (int i = 0; i < a->l; i++)
         *(b + i) = *(a->n + i);
 
     free (a->n);
-    a->n = malloc(l * sizeof(int));
+    a->n = malloc(l * DIGIT_SIZE);
 
 
     for(int j = 0; j < l; j++)
@@ -82,6 +94,68 @@ int longnum_ntd(char s, int i) //Посимвольное преобразова
     if(a >= i)
         a = -2;
     return a;
+}
+
+pLongNum longnum_copy(pLongNum num)
+{
+    pLongNum res = create_longnum();
+    if (res == NULL)
+    {
+        log("longnum_copy: create_longnum failed");
+        return NULL;
+    }
+    res->l = num->l;
+    res->s = num->s;
+    // Allocate memory
+    longnum_mem(res);
+    memcpy(res->n, num->n, num->l * DIGIT_SIZE);
+    return res;
+}
+
+pLongNum longnum_zero()
+{
+    pLongNum res = create_longnum();
+    if (res == NULL)
+    {
+        log("longnum_zero: create_longnum failed");
+        return NULL;
+    }
+    res->l = 1;
+    res->s = 1;
+    longnum_mem(res);
+    res->n[0] = 0;
+
+    return res;
+}
+pLongNum longnum_one()
+{
+    pLongNum res = create_longnum();
+    if (res == NULL)
+    {
+        log("longnum_one: create_longnum failed");
+        return NULL;
+    }
+    res->l = 1;
+    res->s = 1;
+    longnum_mem(res);
+    res->n[0] = 1;
+
+    return res;
+}
+pLongNum longnum_negative_one()
+{
+    pLongNum res = create_longnum();
+    if (res == NULL)
+    {
+        log("longnum_negative_one: create_longnum failed");
+        return NULL;
+    }
+    res->l = 1;
+    res->s = -1;
+    longnum_mem(res);
+    res->n[0] = 1;
+
+    return res;
 }
 
 //Функции сравнения
@@ -207,20 +281,21 @@ int longnum_compare(pLongNum a, pLongNum b)
 }
 
 //Конвертация типов и систем счисления
-/*pLongNum longnum_from_int(int num)
+pLongNum longnum_from_int(int num)
 {
-    pLongNum a = malloc(sizeof(LongNum));
+    pLongNum a = create_longnum();
     if(num < 0) a->s = -1;
     else a->s = 1;
 
     a->l = (int)log10(num) + 1;
+    longnum_mem(a);
     for(int i = 0; i < a->l; i++)
     {
         *(a->n + i) = (int)(num / pow(10, i)) % (int)pow(10, a->l - i - 1);
     }
     longnum_nulldel(a);
     return a;
-}*/
+}
 pLongNum longnum_parse(char *num, int s) //Преобразование строки в длинное число
 {
     pLongNum a = malloc(sizeof(LongNum));

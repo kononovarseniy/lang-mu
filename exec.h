@@ -17,6 +17,12 @@ int is_equal(Expr a, Expr b);
 int is_true(pExecutor exec, Expr expr);
 int is_macro(Expr expr);
 
+int is_atom(Expr expr);
+int is_pair(Expr expr);
+int is_int(Expr expr);
+int is_char(Expr expr);
+int is_string(Expr expr);
+
 pExecutor create_executor(void);
 void free_executor(pExecutor exec);
 
@@ -48,7 +54,7 @@ Expr *get_items(pExecutor exec, Expr expr, int cnt);
 Expr *get_list(pExecutor exec, Expr expr, int *len);
 
 Expr make_atom(pExecutor exec, char *name);
-Expr make_int(pExecutor exec, long value);
+Expr make_int(pExecutor exec, pLongNum value);
 Expr make_char(pExecutor exec, char value);
 Expr make_string(pExecutor exec, char *value);
 Expr make_function(pExecutor exec, pFunction value);

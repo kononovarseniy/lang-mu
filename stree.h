@@ -1,6 +1,8 @@
 #ifndef STREE_H_INCLUDED
 #define STREE_H_INCLUDED
 
+#include "stdlib/longnum.h"
+
 enum NodeType
 {
     NODE_NONE,
@@ -23,7 +25,7 @@ struct STree
         char *str_val;
         pSTree child;
 
-        long int_val;
+        pLongNum int_val;
         char char_val;
     };
 };

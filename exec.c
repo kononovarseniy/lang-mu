@@ -27,13 +27,16 @@ int is_equal(Expr a, Expr b)
         return a.val_atom == b.val_atom;
     case VT_CHAR:
         return a.val_char == b.val_char;
-    case VT_INT:
-        return a.val_int == b.val_int;
+    case VT_INT_PTR:
+        return longnum_equal(
+            dereference(a).val_int,
+            dereference(b).val_int);
     case VT_STRING_PTR:
         return strcmp(
-                      dereference(a).val_str,
-                      dereference(b).val_str) == 0;
+            dereference(a).val_str,
+            dereference(b).val_str) == 0;
     case VT_PAIR:
+    case VT_INT_VAL:
     case VT_STRING_VAL:
     case VT_FUNC_PTR:
     case VT_FUNC_VAL:
@@ -56,6 +59,26 @@ int is_macro(Expr expr)
     return
         expr.type == VT_FUNC_PTR &&
         dereference(expr).val_func->type == FT_USER_MACRO;
+}
+int is_atom(Expr expr)
+{
+    return expr.type == VT_ATOM;
+}
+int is_pair(Expr expr)
+{
+    return expr.type == VT_PAIR;
+}
+int is_int(Expr expr)
+{
+    return expr.type == VT_INT_PTR;
+}
+int is_char(Expr expr)
+{
+    return expr.type == VT_CHAR;
+}
+int is_string(Expr expr)
+{
+    return expr.type == VT_STRING_PTR;
 }
 
 pExecutor create_executor(void)
@@ -711,12 +734,26 @@ Expr make_atom(pExecutor exec, char *name)
     res.val_atom = atom;
     return res;
 }
-Expr make_int(pExecutor exec, long value)
+Expr make_int(pExecutor exec, pLongNum value)
 {
+    pLongNum copy = longnum_copy(value);
+    if (copy == NULL)
+    {
+        log("make_int: longnum_copy failed");
+        return expr_none();
+    }
     Expr res;
-    res.type = VT_INT;
-    res.val_int = value;
-    return res;
+    res.type = VT_INT_VAL;
+    res.val_int = copy;
+
+    Expr ptr = gc_register(exec->heap, res);
+    if (is_none(ptr))
+    {
+        log("make_int: gc_register failed");
+        free(copy);
+        return expr_none();
+    }
+    return ptr;
 }
 Expr make_char(pExecutor exec, char value)
 {
@@ -756,7 +793,7 @@ Expr make_function(pExecutor exec, pFunction value)
     Expr ptr = gc_register(exec->heap, res);
     if (is_none(ptr))
     {
-        log("make_function failed");
+        log("make_function: gc_register failed");
         return expr_none();
     }
     return ptr;

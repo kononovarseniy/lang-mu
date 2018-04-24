@@ -13,7 +13,7 @@ int yyerror(char *s);
 int hextodec(char ch);
 
 char *unescape_string(char *str, int len);
-
+pLongNum parse_int(char *text, int base);
 void scanner_error(const char *format, ...);
 %}
 
@@ -76,10 +76,10 @@ char        "\'"{str_char}"\'"
 <mlcomment>\n           yylineno++;
 <mlcomment>"*"+"/"      BEGIN(INITIAL);
 
-{dec_int}   { yylval.int_val = strtol(yytext, NULL, 10); return INT_LITERAL; }
-{hex_int}   { yylval.int_val = strtol(yytext + 2, NULL, 16); return INT_LITERAL; }
-{oct_int}   { yylval.int_val = strtol(yytext + 2, NULL, 8); return INT_LITERAL; }
-{bin_int}   { yylval.int_val = strtol(yytext + 2, NULL, 2); return INT_LITERAL; }
+{dec_int}   { yylval.int_val = parse_int(yytext, 10); return INT_LITERAL; }
+{hex_int}   { yylval.int_val = parse_int(yytext + 2, 16); return INT_LITERAL; }
+{oct_int}   { yylval.int_val = parse_int(yytext + 2, 8); return INT_LITERAL; }
+{bin_int}   { yylval.int_val = parse_int(yytext + 2, 2); return INT_LITERAL; }
 
 {char}      {
         char *str = unescape_string(yytext + 1, yyleng - 2);
@@ -87,7 +87,7 @@ char        "\'"{str_char}"\'"
         free(str);
         return CHAR_LITERAL;
     }
-    
+
 {quote}         { return QUOTE; }
 {backquote}     { return BACKQUOTE; }
 {comma}         { return COMMA; }
@@ -145,10 +145,17 @@ char        "\'"{str_char}"\'"
 
 %%
 
+pLongNum parse_int(char *text, int base)
+{
+    #warning may not work
+    pLongNum num = longnum_parse(text, base);
+    return num;
+}
+
 void scanner_error(const char *format, ...)
 {
     char buffer[256];
-    
+
     va_list args;
     va_start(args, format);
 
@@ -156,6 +163,6 @@ void scanner_error(const char *format, ...)
 
     printf("SCANNER ");
     yyerror(buffer);
-    
+
     va_end(args);
 }

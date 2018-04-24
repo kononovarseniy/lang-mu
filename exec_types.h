@@ -1,6 +1,8 @@
 #ifndef EXEC_TYPES_H_INCLUDED
 #define EXEC_TYPES_H_INCLUDED
 
+#include "stdlib/longnum.h"
+
 #include "context.h"
 
 typedef struct Context Context, *pContext; // Defined in context.h
@@ -28,12 +30,13 @@ enum ValueType
     VT_ATOM = 1,
     VT_PAIR = 2,
     VT_FUNC_VAL = 3,
-    VT_INT = 4,
+    VT_INT_VAL = 4,
     VT_CHAR = 5,
     VT_STRING_VAL = 6,
 
     VT_POINTER = 1 << 7,
     VT_FUNC_PTR = VT_FUNC_VAL | VT_POINTER,
+    VT_INT_PTR = VT_INT_VAL | VT_POINTER,
     VT_STRING_PTR = VT_STRING_VAL | VT_POINTER
 };
 
@@ -46,7 +49,7 @@ struct Expr
         size_t val_atom;
         pGCPointer val_ptr;
         pFunction val_func;
-        long val_int;
+        pLongNum val_int;
         char val_char;
         char *val_str;
 

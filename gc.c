@@ -104,6 +104,8 @@ void gc_free(pHeap heap, pGCPointer ptr)
     case VT_STRING_VAL:
         free(value.val_str);
         break;
+    case VT_INT_VAL:
+        free_longnum(value.val_int);
     default:
         break;
     }
