@@ -147,7 +147,6 @@ char        "\'"{str_char}"\'"
 
 pLongNum parse_int(char *text, int base)
 {
-    #warning may not work
     pLongNum num = longnum_parse(text, base);
     return num;
 }

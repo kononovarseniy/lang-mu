@@ -76,15 +76,23 @@ Expr exec_long_from_double(pExecutor exec, double val)
     log("exec_long_from_double: not implemented");
     return expr_none();
 }
-long exec_long_to_int(pExecutor exec, pLongNum num)
+long exec_long_to_int(pExecutor exec, Expr num)
 {
-    log("exec_long_to_int: not implemented");
-    return 0;
+    if (!is_int(num))
+    {
+        log("exec_long_to_int: argument is not integer");
+        exit(1);
+    }
+    return longnum_to_int(dereference(num).val_int);
 }
-double exec_long_to_double(pExecutor exec, pLongNum num)
+double exec_long_to_double(pExecutor exec, Expr num)
 {
-    log("exec_long_to_double: not implemented");
-    return 0;
+    if (!is_int(num))
+    {
+        log("exec_long_to_double: argument is not integer");
+        exit(1);
+    }
+    return longnum_to_double(dereference(num).val_int);
 }
 
 

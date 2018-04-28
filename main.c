@@ -7,7 +7,7 @@
 #include "print.h"
 #include "log.h"
 
-#include "stdlib/longnum.h"
+#include "stdlib/longnum_stub.h"
 
 pSTree parse_file(char *name)
 {
@@ -54,8 +54,6 @@ Expr execute_program(pSTree code_tree)
 
 int main(int argc, char **argv)
 {
-    longnum_test_main();
-
     pSTree code_tree = parse_file("tests/hello-world.mu");
     execute_program(code_tree);
     free_stree(code_tree);

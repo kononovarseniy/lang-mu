@@ -94,7 +94,7 @@ void print_int(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int
 
     expr = dereference(expr);
 
-    char * str = longnum_to_string(expr.val_int);
+    char * str = longnum_to_string(expr.val_int, 10);
     fprintf(f, "%s", str);
     free(str);
 

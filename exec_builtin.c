@@ -330,27 +330,206 @@ BUILTIN_FUNC(xor)
 
 }
 
-BUILTIN_FUNC(plus)
+Expr compare_impl(pExecutor exec, pContext context, char *caller, Expr *args, int argc, int order, int strict)
 {
-    pLongNum sum = longnum_zero();
+    int success = 1;
+
+    Expr prev;
     for (int i = 0; i < argc; i++)
     {
-        Expr value = exec_eval(exec, callContext, args[i]);
+        Expr value = exec_eval(exec, context, args[i]);
         if (value.type != VT_INT_PTR)
         {
-            log("plus: integer expected");
+            logf("%s: integer expected", caller);
             exit(1);
         }
-        pLongNum newSum = longnum_add(sum, dereference(value).val_int);
-        free_longnum(sum);
-        sum = newSum;
+        if (i > 0)
+        {
+            int cmpres = exec_long_compare(prev, value);
+            if (!(cmpres == order || (!strict && cmpres == 0)))
+            {
+                success = 0;
+                break;
+            }
+        }
+        prev = value;
     }
-    Expr res = make_int(exec, sum);
+    if (success)
+        return exec->t;
+    else
+        return exec->nil;
+}
+
+BUILTIN_FUNC(less_builtin)
+{
+    return compare_impl(exec, callContext, "less", args, argc, -1, 1);
+}
+BUILTIN_FUNC(less_or_equals_builtin)
+{
+    return compare_impl(exec, callContext, "less_or_equals", args, argc, -1, 0);
+}
+BUILTIN_FUNC(num_equals_builtin)
+{
+    return compare_impl(exec, callContext, "less_or_equals", args, argc, 0, 0);
+}
+BUILTIN_FUNC(more_or_equals_builtin)
+{
+    return compare_impl(exec, callContext, "more_or_equals", args, argc, 1, 0);
+}
+BUILTIN_FUNC(more_builtin)
+{
+    return compare_impl(exec, callContext, "more", args, argc, 1, 1);
+}
+
+void check_numeric_arguments(Expr *args, int argc, char *caller)
+{
+    for (int i = 0; i < argc; i++)
+    {
+        if (!is_int(args[i]))
+        {
+            logf("%s: integer expected", caller);
+            exit(1);
+        }
+    }
+}
+
+Expr make_int_checked(pExecutor exec, pLongNum num, char *caller)
+{
+    Expr res = make_int(exec, num);
     if (is_none(res))
     {
-        log("plus: make_int failed");
+        logf("%s: make_int failed", caller);
         exit(1);
     }
+    return res;
+}
+
+BUILTIN_FUNC(sum_builtin)
+{
+    Expr *values = exec_eval_each(exec, callContext, args, argc);
+    check_numeric_arguments(values, argc, "sum");
+
+    pLongNum num = longnum_zero();
+    for (int i = 0; i < argc; i++)
+    {
+        pLongNum new_num = longnum_add(num, dereference(values[i]).val_int);
+        free_longnum(num);
+        num = new_num;
+    }
+    free(values);
+
+    Expr res = make_int_checked(exec, num, "sum");
+    free_longnum(num);
+    return res;
+}
+BUILTIN_FUNC(difference_builtin)
+{
+    if (argc == 0)
+    {
+        log("difference: too few arguments");
+        exit(1);
+    }
+    Expr *values = exec_eval_each(exec, callContext, args, argc);
+    check_numeric_arguments(values, argc, "difference");
+
+    pLongNum first = dereference(values[0]).val_int;
+    pLongNum num;
+    if (argc == 1)
+        num = longnum_inverse(first);
+    else
+        num = longnum_copy(first);
+    for (int i = 1; i < argc; i++)
+    {
+        pLongNum new_num = longnum_sub(num, dereference(values[i]).val_int);
+        free_longnum(num);
+        num = new_num;
+    }
+    free(values);
+
+    Expr res = make_int_checked(exec, num, "difference");
+    free_longnum(num);
+    return res;
+}
+BUILTIN_FUNC(product_builtin)
+{
+    Expr *values = exec_eval_each(exec, callContext, args, argc);
+    check_numeric_arguments(values, argc, "product");
+
+    pLongNum num = longnum_one();
+    for (int i = 0; i < argc; i++)
+    {
+        pLongNum new_num = longnum_product(num, dereference(values[i]).val_int);
+        free_longnum(num);
+        num = new_num;
+    }
+    free(values);
+
+    Expr res = make_int_checked(exec, num, "product");
+    free_longnum(num);
+    return res;
+}
+BUILTIN_FUNC(quotient_builtin)
+{
+    // TODO: handle division by zero
+    if (argc == 0)
+    {
+        log("quotient: too few arguments");
+        exit(1);
+    }
+    Expr *values = exec_eval_each(exec, callContext, args, argc);
+    check_numeric_arguments(values, argc, "quotient");
+
+
+    pLongNum first = dereference(values[0]).val_int;
+    pLongNum num;
+    if (argc == 1)
+    {
+        pLongNum one = longnum_one();
+        num = longnum_div(one, first);
+        free_longnum(one);
+    }
+    else
+    {
+        num = longnum_one();
+        for (int i = 1; i < argc; i++)
+        {
+            pLongNum new_num = longnum_product(num, dereference(values[i]).val_int);
+            free_longnum(num);
+            num = new_num;
+        }
+        pLongNum div = longnum_div(first, num);
+        free_longnum(num);
+        num = div;
+    }
+    free(values);
+
+    Expr res = make_int_checked(exec, num, "quotient");
+    free_longnum(num);
+    return res;
+}
+BUILTIN_FUNC(remainder_builtin)
+{
+    if (argc < 2)
+    {
+        log("remainder: too few arguments");
+        exit(1);
+    }
+    if (argc > 2)
+    {
+        log("remainder: too many arguments");
+        exit(1);
+    }
+    Expr *values = exec_eval_each(exec, callContext, args, argc);
+    check_numeric_arguments(values, argc, "remainder");
+
+    pLongNum first = dereference(values[0]).val_int;
+    pLongNum second = dereference(values[1]).val_int;
+    free(values);
+
+    pLongNum num = longnum_rem(first, second);
+
+    Expr res = make_int_checked(exec, num, "remainder");
+    free_longnum(num);
     return res;
 }
 
@@ -651,12 +830,11 @@ BUILTIN_FUNC(gensym)
             exit(1);
         }
     }
-
-    #warning BROKEN!!! start loop from n == **gensym-counter**
-    for (int n = 1;;n++)
+    long n = exec_long_to_int(exec, value);
+    for (;;n++)
     {
         char name[7];
-        sprintf(name, "#:%d", n);
+        sprintf(name, "#:%ld", n);
         size_t found = find_atom(exec, name);
         if (found == EXPR_ERROR)
         {

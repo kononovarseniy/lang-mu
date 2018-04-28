@@ -1,7 +1,7 @@
 #ifndef EXEC_TYPES_H_INCLUDED
 #define EXEC_TYPES_H_INCLUDED
 
-#include "stdlib/longnum.h"
+#include "stdlib/longnum_stub.h"
 
 #include "context.h"
 

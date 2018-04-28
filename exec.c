@@ -28,9 +28,9 @@ int is_equal(Expr a, Expr b)
     case VT_CHAR:
         return a.val_char == b.val_char;
     case VT_INT_PTR:
-        return longnum_equal(
+        return longnum_compare(
             dereference(a).val_int,
-            dereference(b).val_int);
+            dereference(b).val_int) == 0;
     case VT_STRING_PTR:
         return strcmp(
             dereference(a).val_str,
@@ -224,6 +224,24 @@ Expr register_function(pExecutor exec, pContext context, char *name, pBuiltinFun
     return res;
 }
 
+Expr register_alias(pExecutor exec, pContext context, char *name, char *alias)
+{
+    Expr key = make_atom(exec, name);
+    Expr alias_key = make_atom(exec, alias);
+    if (is_none(key) || is_none(alias_key))
+    {
+        log("register_alias: make_atom failed");
+        exit(1);
+    }
+    Expr value = exec_eval(exec, context, key);
+    if (context_bind(context, alias_key.val_atom, value) == MAP_FAILED)
+    {
+        log("register_alias: context_bind failed");
+        exit(1);
+    }
+    return value;
+}
+
 void exec_init(pExecutor exec)
 {
     // Create global
@@ -279,8 +297,17 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "not", not);
     register_function(exec, global, "xor", xor);
 
-    Expr plus_func = register_function(exec, global, "plus", plus);
-    context_bind(global, add_atom(exec, "+"), plus_func);
+    register_function(exec, global, "+", sum_builtin);
+    register_function(exec, global, "-", difference_builtin);
+    register_function(exec, global, "*", product_builtin);
+    register_function(exec, global, "/", quotient_builtin);
+    register_function(exec, global, "%", remainder_builtin);
+
+    register_function(exec, global, "<", less_builtin);
+    register_function(exec, global, "<=", less_or_equals_builtin);
+    register_function(exec, global, "==", num_equals_builtin);
+    register_function(exec, global, ">=", more_or_equals_builtin);
+    register_function(exec, global, ">", more_builtin);
 }
 
 void exec_set_code(pExecutor exec, Expr code)
@@ -516,6 +543,15 @@ Expr exec_eval_all(pExecutor exec, pContext context, Expr expr)
     Expr *list = get_list(exec, expr, &len);
     Expr res = exec_eval_array(exec, context, list, len);
     free(list);
+    return res;
+}
+Expr *exec_eval_each(pExecutor exec, pContext context, Expr *array, int len)
+{
+    Expr *res = malloc(len * sizeof(Expr));
+    for (int i = 0; i < len; i++)
+    {
+        res[i] = exec_eval(exec, context, array[i]);
+    }
     return res;
 }
 Expr exec_macroexpand(pExecutor exec, pContext context, pFunction macro, Expr *args, int len)

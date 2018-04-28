@@ -1,7 +1,7 @@
 #ifndef STREE_H_INCLUDED
 #define STREE_H_INCLUDED
 
-#include "stdlib/longnum.h"
+#include "stdlib/longnum_stub.h"
 
 enum NodeType
 {
