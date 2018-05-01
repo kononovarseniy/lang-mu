@@ -209,7 +209,7 @@
 (assert-equals (% '1' '2') '1')
 (assert-equals (% '2' '1') (- '1' '0'))
 
-(prints "                      <<< numbers test >>>")
+(prints "                    <<< numbers test >>>")
 (prints "<<< parsing tests >>>")
 (assert-equals -1 (- 1))
 (assert-equals 0xff 255)
@@ -242,4 +242,51 @@
 (assert-equals (== 1 '1') nil)
 (assert-equals (== 1 1.0) T)
 (assert-equals (== 32 32.0 ' ') T)
+
+(prints "                    <<< predicates test >>>")
+(assert-equals (atom? 'a) T)
+(assert-equals (atom? nil) T)
+
+(assert-equals (pair? (cons 'a 'b)) T)
+(assert-equals (pair? '(a b)) T)
+(assert-equals (pair? nil) nil)
+
+(assert-equals (char? '1') T)
+(assert-equals (char? 1) nil)
+(assert-equals (char? 1.0) nil)
+(assert-equals (char? "1") nil)
+
+(assert-equals (int? 1) T)
+(assert-equals (int? '1') nil)
+(assert-equals (int? 1.0) nil)
+
+(assert-equals (real? 1.0) T)
+(assert-equals (string? "") T)
+(assert-equals (function? lambda) T)
+(assert-equals (function? (lambda nil nil)) T)
+(assert-equals (macro? lambda) nil)
+(assert-equals (macro? (getm defmacro)) T)
+
+(defun integer? (expr) (or (char? expr) (int? expr)))
+(defun number? (expr) (or (integer? expr) (real? expr)))
+(defun list? (expr) (if (not expr) T (and (pair? expr) (list? (tail expr)))))
+
+(assert-equals (integer? 1) T)
+(assert-equals (integer? 'a') T)
+(assert-equals (integer? 1.0) nil)
+
+(assert-equals (number? 1) T)
+(assert-equals (number? 'a') T)
+(assert-equals (number? 1.0) T)
+(assert-equals (number? nil) nil)
+
+(assert-equals (list? nil) T)
+(assert-equals (list? '(1)) T)
+(assert-equals (list? '(1 2 3)) T)
+(assert-equals (list? (cons 'a 'b)) nil)
+(assert-equals (list? (cons 'a (cons 'b 'c))) nil)
+(assert-equals (list? 'a) nil)
+(assert-equals (list? 1) nil)
+
+
 

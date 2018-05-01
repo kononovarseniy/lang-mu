@@ -4,12 +4,12 @@
 
 #include "log.h"
 
-int is_none(Expr expr)
+_Bool is_none(Expr expr)
 {
     return expr.type == VT_NONE;
 }
 
-int is_equal(Expr a, Expr b)
+_Bool is_equal(Expr a, Expr b)
 {
     if (a.type != b.type) return 0;
     switch (a.type)
@@ -41,7 +41,7 @@ int is_equal(Expr a, Expr b)
     }
 }
 
-int is_true(pExecutor exec, Expr expr)
+_Bool is_true(pExecutor exec, Expr expr)
 {
     if ((expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom) ||
         (expr.type == VT_NONE))
@@ -49,39 +49,44 @@ int is_true(pExecutor exec, Expr expr)
     return 1;
 }
 
-int is_macro(Expr expr)
-{
-    return
-        expr.type == VT_FUNC_PTR &&
-        dereference(expr).val_func->type == FT_USER_MACRO;
-}
-
-int is_atom(Expr expr)
+_Bool is_atom(Expr expr)
 {
     return expr.type == VT_ATOM;
 }
 
-int is_pair(Expr expr)
+_Bool is_pair(Expr expr)
 {
     return expr.type == VT_PAIR;
 }
 
-int is_int(Expr expr)
-{
-    return expr.type == VT_INT_PTR;
-}
-
-int is_real(Expr expr)
-{
-    return expr.type == VT_REAL;
-}
-
-int is_char(Expr expr)
+_Bool is_char(Expr expr)
 {
     return expr.type == VT_CHAR;
 }
 
-int is_string(Expr expr)
+_Bool is_int(Expr expr)
+{
+    return expr.type == VT_INT_PTR;
+}
+
+_Bool is_real(Expr expr)
+{
+    return expr.type == VT_REAL;
+}
+
+_Bool is_string(Expr expr)
 {
     return expr.type == VT_STRING_PTR;
+}
+
+_Bool is_function(Expr expr)
+{
+    return expr.type == VT_FUNC_PTR;
+}
+
+_Bool is_macro(Expr expr)
+{
+    return
+        expr.type == VT_FUNC_PTR &&
+        dereference(expr).val_func->type == FT_USER_MACRO;
 }

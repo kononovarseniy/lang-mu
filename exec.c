@@ -283,6 +283,15 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "==", num_equals_builtin);
     register_function(exec, global, ">=", more_or_equals_builtin);
     register_function(exec, global, ">", more_builtin);
+    // Predicates
+    register_function(exec, global, "atom?", atom_p);
+    register_function(exec, global, "pair?", pair_p);
+    register_function(exec, global, "char?", char_p);
+    register_function(exec, global, "int?", int_p);
+    register_function(exec, global, "real?", real_p);
+    register_function(exec, global, "string?", string_p);
+    register_function(exec, global, "function?", function_p);
+    register_function(exec, global, "macro?", macro_p);
 }
 
 void exec_set_code(pExecutor exec, Expr code)

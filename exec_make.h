@@ -1,9 +1,12 @@
 #ifndef EXEC_MAKE_H_INCLUDED
 #define EXEC_MAKE_H_INCLUDED
 
+#include <stdbool.h>
+
 #include "exec.h"
 
 Expr make_none();
+Expr make_bool(pExecutor exec, _Bool value);
 Expr make_atom(pExecutor exec, char *name);
 Expr make_int(pExecutor exec, pLongNum value);
 Expr make_int_zero(pExecutor exec);

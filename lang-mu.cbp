@@ -51,6 +51,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="exec_builtin.h" />
+		<Unit filename="exec_builtin_predicates.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="exec_eval.c">
 			<Option compilerVar="CC" />
 		</Unit>

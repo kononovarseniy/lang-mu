@@ -11,6 +11,14 @@ Expr make_none()
     return res;
 }
 
+Expr make_bool(pExecutor exec, _Bool value)
+{
+    if (value)
+        return exec->t;
+    else
+        return exec->nil;
+}
+
 Expr make_atom(pExecutor exec, char *name)
 {
     size_t atom = add_atom(exec, name);
