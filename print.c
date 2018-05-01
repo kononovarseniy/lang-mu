@@ -94,10 +94,18 @@ void print_int(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int
 
     expr = dereference(expr);
 
-    char * str = longnum_to_string(expr.val_int, 10);
+    char *str = longnum_to_string(expr.val_int, 10);
     fprintf(f, "%s", str);
     free(str);
 
+    print_wrap(f, flags);
+}
+
+void print_real(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int indent)
+{
+    print_indent(f, indent, flags);
+    print_quotation(f, &flags);
+    fprintf(f, "%g", expr.val_real);
     print_wrap(f, flags);
 }
 
@@ -161,6 +169,9 @@ void print_expression(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags fla
         break;
     case VT_INT_PTR:
         print_int(f, exec, expr, flags, indent);
+        break;
+    case VT_REAL:
+        print_real(f, exec, expr, flags, indent);
         break;
     case VT_STRING_PTR:
         print_string(f, exec, expr, flags, indent);

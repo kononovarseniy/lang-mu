@@ -29,6 +29,7 @@ pSTree parser_create_atom(char *atom);
     char *str_val;
     char char_val;
     pLongNum int_val;
+    double real_val;
     pSTree tree;
 }
 
@@ -48,7 +49,7 @@ pSTree parser_create_atom(char *atom);
 
 %token  <name>      NAME
 %token  <int_val>   INT_LITERAL
-%token              FLOAT_LITERAL
+%token  <real_val>  REAL_LITERAL
 %token              RAT_LITERAL
 %token  <char_val>  CHAR_LITERAL
 %token  <str_val>   STR_LITERAL
@@ -75,6 +76,11 @@ item:   NAME { $$ = parser_create_atom($1); free($1); }
             $$ = create_stree();
             $$->type = NODE_INT;
             $$->int_val = $1;
+        }
+        | REAL_LITERAL {
+            $$ = create_stree();
+            $$->type = NODE_REAL;
+            $$->real_val = $1;
         }
         | STR_LITERAL {
             $$ = create_stree();

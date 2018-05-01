@@ -31,6 +31,8 @@ int is_equal(Expr a, Expr b)
         return longnum_compare(
             dereference(a).val_int,
             dereference(b).val_int) == 0;
+    case VT_REAL:
+        return a.val_real == b.val_real;
     case VT_STRING_PTR:
         return strcmp(
             dereference(a).val_str,
@@ -71,6 +73,10 @@ int is_pair(Expr expr)
 int is_int(Expr expr)
 {
     return expr.type == VT_INT_PTR;
+}
+int is_real(Expr expr)
+{
+    return expr.type == VT_REAL;
 }
 int is_char(Expr expr)
 {
@@ -790,6 +796,49 @@ Expr make_int(pExecutor exec, pLongNum value)
         return expr_none();
     }
     return ptr;
+}
+Expr make_int_zero(pExecutor exec)
+{
+    pLongNum num = longnum_zero();
+    if (num == NULL)
+    {
+        log("make_int_zero: longnum_zero failed");
+        exit(1);
+    }
+    Expr res = make_int(exec, num);
+    free_longnum(num);
+    return res;
+}
+Expr make_int_one(pExecutor exec)
+{
+    pLongNum num = longnum_one();
+    if (num == NULL)
+    {
+        log("make_int_zero: longnum_one failed");
+        exit(1);
+    }
+    Expr res = make_int(exec, num);
+    free_longnum(num);
+    return res;
+}
+Expr make_int_negative_one(pExecutor exec)
+{
+    pLongNum num = longnum_negative_one();
+    if (num == NULL)
+    {
+        log("make_int_zero: longnum_negative_one failed");
+        exit(1);
+    }
+    Expr res = make_int(exec, num);
+    free_longnum(num);
+    return res;
+}
+Expr make_real(pExecutor exec, double value)
+{
+    Expr res;
+    res.type = VT_REAL;
+    res.val_real = value;
+    return res;
 }
 Expr make_char(pExecutor exec, char value)
 {

@@ -31,8 +31,9 @@ enum ValueType
     VT_PAIR = 2,
     VT_FUNC_VAL = 3,
     VT_INT_VAL = 4,
-    VT_CHAR = 5,
-    VT_STRING_VAL = 6,
+    VT_REAL = 5,
+    VT_CHAR = 6,
+    VT_STRING_VAL = 7,
 
     VT_POINTER = 1 << 7,
     VT_FUNC_PTR = VT_FUNC_VAL | VT_POINTER,
@@ -50,6 +51,7 @@ struct Expr
         pGCPointer val_ptr;
         pFunction val_func;
         pLongNum val_int;
+        double val_real;
         char val_char;
         char *val_str;
 

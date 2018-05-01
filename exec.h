@@ -20,6 +20,7 @@ int is_macro(Expr expr);
 int is_atom(Expr expr);
 int is_pair(Expr expr);
 int is_int(Expr expr);
+int is_real(Expr expr);
 int is_char(Expr expr);
 int is_string(Expr expr);
 
@@ -56,6 +57,10 @@ Expr *get_list(pExecutor exec, Expr expr, int *len);
 
 Expr make_atom(pExecutor exec, char *name);
 Expr make_int(pExecutor exec, pLongNum value);
+Expr make_int_zero(pExecutor exec);
+Expr make_int_one(pExecutor exec);
+Expr make_int_negative_one(pExecutor exec);
+Expr make_real(pExecutor exec, double value);
 Expr make_char(pExecutor exec, char value);
 Expr make_string(pExecutor exec, char *value);
 Expr make_function(pExecutor exec, pFunction value);

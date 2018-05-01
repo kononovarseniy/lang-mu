@@ -9,6 +9,7 @@ enum NodeType
     NODE_LIST,
     NODE_NAME,
     NODE_INT,
+    NODE_REAL,
     NODE_STR,
     NODE_CHAR
 };
@@ -26,6 +27,7 @@ struct STree
         pSTree child;
 
         pLongNum int_val;
+        double real_val;
         char char_val;
     };
 };

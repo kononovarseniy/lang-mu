@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "mu.parser.h"
 #include "strutils.h"
@@ -14,6 +15,7 @@ int hextodec(char ch);
 
 char *unescape_string(char *str, int len);
 pLongNum parse_int(char *text, int base);
+double parse_real(char *text, int len);
 void scanner_error(const char *format, ...);
 %}
 
@@ -50,6 +52,11 @@ hex_int     (?i:"0x"{hex_digit}+)
 oct_int     (?i:"0o"{oct_digit}+)
 bin_int     (?i:"0b"{bin_digit}+)
 
+float_exp   [eE][+-]?{digit}+
+float_frac  \.{digit}+
+float_int   [+-]?{digit}+
+float       {float_int}({float_frac}|{float_exp}|({float_frac}{float_exp}))
+
 str_char    ([^"\n\\]|"\\"[^\n])
 string      "\""{str_char}*"\""
 
@@ -75,6 +82,8 @@ char        "\'"{str_char}"\'"
 <mlcomment>"*"+[^*/\n]  {}
 <mlcomment>\n           yylineno++;
 <mlcomment>"*"+"/"      BEGIN(INITIAL);
+
+{float}     { yylval.real_val = parse_real(yytext, yyleng); return REAL_LITERAL; }
 
 {dec_int}   { yylval.int_val = parse_int(yytext, 10); return INT_LITERAL; }
 {hex_int}   { yylval.int_val = parse_int(yytext + 2, 16); return INT_LITERAL; }
@@ -151,6 +160,21 @@ pLongNum parse_int(char *text, int base)
     return num;
 }
 
+double parse_real(char *text, int len)
+{
+    double res;
+    errno = 0;
+    char *pEnd;
+    res = strtod(text, &pEnd);
+    if (errno == ERANGE)
+    {
+        errno = 0;
+        scanner_error("Floating point overflow");
+        return 0;
+    }
+    return res;
+}
+
 void scanner_error(const char *format, ...)
 {
     char buffer[256];
@@ -160,8 +184,9 @@ void scanner_error(const char *format, ...)
 
     vsprintf(buffer, format, args);
 
+    va_end(args);
+
     printf("SCANNER ");
     yyerror(buffer);
 
-    va_end(args);
 }

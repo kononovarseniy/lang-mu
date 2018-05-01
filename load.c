@@ -12,6 +12,11 @@ Expr load_int(pExecutor exec, pSTree item)
     return make_int(exec, item->int_val);
 }
 
+Expr load_real(pExecutor exec, pSTree item)
+{
+    return make_real(exec, item->real_val);
+}
+
 Expr load_char(pExecutor exec, pSTree item)
 {
     return make_char(exec, item->char_val);
@@ -32,6 +37,8 @@ Expr load_item(pExecutor exec, pSTree item)
         return load_atom(exec, item);
     case NODE_INT:
         return load_int(exec, item);
+    case NODE_REAL:
+        return load_real(exec, item);
     case NODE_CHAR:
         return load_char(exec, item);
     case NODE_STR:

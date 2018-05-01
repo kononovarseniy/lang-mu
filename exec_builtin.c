@@ -338,14 +338,9 @@ Expr compare_impl(pExecutor exec, pContext context, char *caller, Expr *args, in
     for (int i = 0; i < argc; i++)
     {
         Expr value = exec_eval(exec, context, args[i]);
-        if (value.type != VT_INT_PTR)
-        {
-            logf("%s: integer expected", caller);
-            exit(1);
-        }
         if (i > 0)
         {
-            int cmpres = exec_long_compare(prev, value);
+            int cmpres = exec_compare(exec, prev, value);
             if (!(cmpres == order || (!strict && cmpres == 0)))
             {
                 success = 0;
@@ -406,21 +401,17 @@ Expr make_int_checked(pExecutor exec, pLongNum num, char *caller)
 
 BUILTIN_FUNC(sum_builtin)
 {
+    if (argc == 0)
+        return make_int_zero(exec);
+
     Expr *values = exec_eval_each(exec, callContext, args, argc);
-    check_numeric_arguments(values, argc, "sum");
 
-    pLongNum num = longnum_zero();
-    for (int i = 0; i < argc; i++)
-    {
-        pLongNum new_num = longnum_add(num, dereference(values[i]).val_int);
-        free_longnum(num);
-        num = new_num;
-    }
+    Expr num = values[0];
+    for (int i = 1; i < argc; i++)
+        num = exec_sum(exec, num, values[i]);
+
     free(values);
-
-    Expr res = make_int_checked(exec, num, "sum");
-    free_longnum(num);
-    return res;
+    return num;
 }
 BUILTIN_FUNC(difference_builtin)
 {
@@ -430,82 +421,59 @@ BUILTIN_FUNC(difference_builtin)
         exit(1);
     }
     Expr *values = exec_eval_each(exec, callContext, args, argc);
-    check_numeric_arguments(values, argc, "difference");
 
-    pLongNum first = dereference(values[0]).val_int;
-    pLongNum num;
+    Expr first = values[0];
     if (argc == 1)
-        num = longnum_inverse(first);
-    else
-        num = longnum_copy(first);
-    for (int i = 1; i < argc; i++)
     {
-        pLongNum new_num = longnum_sub(num, dereference(values[i]).val_int);
-        free_longnum(num);
-        num = new_num;
+        free(values);
+        return exec_inverse(exec, first);
     }
-    free(values);
 
-    Expr res = make_int_checked(exec, num, "difference");
-    free_longnum(num);
-    return res;
+    Expr num = first;
+    for (int i = 1; i < argc; i++)
+        num = exec_difference(exec, num, values[i]);
+
+    free(values);
+    return num;
 }
 BUILTIN_FUNC(product_builtin)
 {
+    if (argc == 0)
+        return make_int_one(exec);
+
     Expr *values = exec_eval_each(exec, callContext, args, argc);
-    check_numeric_arguments(values, argc, "product");
 
-    pLongNum num = longnum_one();
-    for (int i = 0; i < argc; i++)
-    {
-        pLongNum new_num = longnum_product(num, dereference(values[i]).val_int);
-        free_longnum(num);
-        num = new_num;
-    }
+    Expr num = values[0];
+    for (int i = 1; i < argc; i++)
+        num = exec_product(exec, num, values[i]);
+
     free(values);
-
-    Expr res = make_int_checked(exec, num, "product");
-    free_longnum(num);
-    return res;
+    return num;
 }
 BUILTIN_FUNC(quotient_builtin)
 {
-    // TODO: handle division by zero
     if (argc == 0)
     {
         log("quotient: too few arguments");
         exit(1);
     }
     Expr *values = exec_eval_each(exec, callContext, args, argc);
-    check_numeric_arguments(values, argc, "quotient");
 
-
-    pLongNum first = dereference(values[0]).val_int;
-    pLongNum num;
+    Expr first = values[0];
     if (argc == 1)
     {
-        pLongNum one = longnum_one();
-        num = longnum_div(one, first);
-        free_longnum(one);
+        free(values);
+        return exec_division_inverse(exec, first);
     }
-    else
-    {
-        num = longnum_one();
-        for (int i = 1; i < argc; i++)
-        {
-            pLongNum new_num = longnum_product(num, dereference(values[i]).val_int);
-            free_longnum(num);
-            num = new_num;
-        }
-        pLongNum div = longnum_div(first, num);
-        free_longnum(num);
-        num = div;
-    }
+
+    // Calculate product of all arguments except first
+    Expr divisor = values[1];
+    for (int i = 2; i < argc; i++)
+        divisor = exec_product(exec, divisor, values[i]);
+
     free(values);
 
-    Expr res = make_int_checked(exec, num, "quotient");
-    free_longnum(num);
-    return res;
+    return exec_quotient(exec, first, divisor);
 }
 BUILTIN_FUNC(remainder_builtin)
 {
@@ -520,17 +488,12 @@ BUILTIN_FUNC(remainder_builtin)
         exit(1);
     }
     Expr *values = exec_eval_each(exec, callContext, args, argc);
-    check_numeric_arguments(values, argc, "remainder");
 
-    pLongNum first = dereference(values[0]).val_int;
-    pLongNum second = dereference(values[1]).val_int;
+    Expr first = values[0];
+    Expr second = values[1];
     free(values);
 
-    pLongNum num = longnum_rem(first, second);
-
-    Expr res = make_int_checked(exec, num, "remainder");
-    free_longnum(num);
-    return res;
+    return exec_reaminder(exec, first, second);
 }
 
 BUILTIN_FUNC(cons)

@@ -94,6 +94,17 @@ pLongNum longnum_from_int(int num)
     res->num = num;
     return res;
 }
+pLongNum longnum_from_double(double num)
+{
+    pLongNum res = create_longnum();
+    if (res == NULL)
+    {
+        log("longnum_from_double: create_longnum failed");
+        return NULL;
+    }
+    res->num = (long)num;
+    return res;
+}
 char *longnum_to_string(pLongNum a, int base)
 {
     char *sym = "0123456789abcdefghijklmnopqarsuvwxyz";
@@ -101,6 +112,13 @@ char *longnum_to_string(pLongNum a, int base)
     {
         log("longnum_to_string: invalid base");
         exit(1);
+    }
+    if (a->num == 0)
+    {
+        char *res = malloc(2 * sizeof(char));
+        res[0] = '0';
+        res[1] = '\0';
+        return res;
     }
     // count digits
     int digits = 0;
