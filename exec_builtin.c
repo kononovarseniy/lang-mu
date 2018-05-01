@@ -769,6 +769,58 @@ BUILTIN_FUNC(cond)
     return exec->nil;
 }
 
+BUILTIN_FUNC(let)
+{
+    if (argc < 2)
+    {
+        log("let: too few arguments");
+        exit(1);
+    }
+    if (!is_pair(args[0]) && !is_equal(args[0], exec->nil))
+    {
+        log("let: first argument not a list");
+        exit(1);
+    }
+    int var_cnt;
+    Expr *var_list = get_list(exec, args[0], &var_cnt);
+
+    pContext context = context_inherit(callContext);
+    for (int i = 0; i < var_cnt; i++)
+    {
+        int len;
+        Expr *list = get_list(exec, var_list[i], &len);
+        if (len == 0 || len > 2 || !is_atom(list[0]))
+        {
+            log("let: invalid initializer");
+            exit(1);
+        }
+        Expr name = list[0];
+        Expr value;
+        if (len == 1)
+            value = exec->nil;
+        else
+            value = exec_eval(exec, context, list[1]);
+        free(list);
+        if (context_bind(context, name.val_atom, value) == MAP_FAILED)
+        {
+            log("let context_bind failed");
+            exit(1);
+        }
+    }
+    free(var_list);
+
+    Expr res = exec_eval_array(exec, context, args + 1, argc - 1);
+    context_unlink(context);
+
+    return res;
+}
+BUILTIN_FUNC(error)
+{
+    printf("ERROR: ");
+    prints(exec, exec->global, callContext, args, argc);
+    exit(1);
+}
+
 BUILTIN_FUNC(gensym)
 {
     if (argc != 0)

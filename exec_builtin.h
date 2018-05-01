@@ -77,6 +77,8 @@ BUILTIN_FUNC(gensym);
 BUILTIN_FUNC(macroexpand);
 
 BUILTIN_FUNC(cond);
+BUILTIN_FUNC(let);
+BUILTIN_FUNC(error);
 
 BUILTIN_FUNC(print);
 BUILTIN_FUNC(prints);

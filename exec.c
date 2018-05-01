@@ -253,6 +253,8 @@ void exec_init(pExecutor exec)
 
     register_function(exec, global, "lambda", lambda);
     register_function(exec, global, "cond", cond);
+    register_function(exec, global, "let", let);
+    register_function(exec, global, "error", error);
     register_function(exec, global, "print", print);
     register_function(exec, global, "prints", prints);
     register_function(exec, global, "quote", quote);
@@ -296,12 +298,25 @@ void exec_init(pExecutor exec)
 
 void exec_set_code(pExecutor exec, Expr code)
 {
-    exec->code = code;
+    Expr pair = make_pair(exec, code, exec->code);
+    if (is_none(pair))
+    {
+        log("exec_set_code: make_pair failed");
+        exit(1);
+    }
+    exec->code = pair;
 }
 
 Expr exec_execute(pExecutor exec)
 {
-    return exec_eval_all(exec, exec->global, exec->code);
+    if (is_equal(exec->code, exec->nil))
+    {
+        log("exec_execute: code is not set");
+        exit(1);
+    }
+    pContext context = exec->global;
+    Expr code = get_head(exec, exec->code);
+    return exec_eval_all(exec, context, code);
 }
 
 char *normalize_name(char *name)

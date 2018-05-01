@@ -46,7 +46,6 @@
 ))
 (print-to-10)
 
-(def list (lambda (&rest items) items))
 (print (list 1 2 (+ 1 2)))
 
 (prints "<<< cond tests >>>")
@@ -71,14 +70,6 @@
 (print (gensym)) // #:3
 
 (prints "<<< macro tests >>>")
-(defm defmacro (macro (name args &rest body)
-    `(defm ,name (macro ,args ,@body))
-))
-(prints "defmacro-def end")
-(defmacro defun (name args &rest body)
-    `(def ,name (lambda ,args ,@body))
-)
-(prints "defun-def end")
 (defun foo (a b &rest c) (+ a b))
 (prints "foo-def end")
 (prints "2 + 3 =" (foo 2 3 4 5 6))
@@ -87,14 +78,17 @@
 (print (macroexpand 'defun '(bar (a b &rest c) 1 2 3)))
 
 (prints "<<< RUN GARBAGE COLLECTOR >>>")
-(def gc-res (gc-collect))
-(def gc-atoms (head gc-res))
-(def gc-pairs (head (tail gc-res)))
-(def gc-objects (head (tail (tail gc-res))))
-(prints "garbage collected")
-(prints "\tatoms:" gc-atoms)
-(prints "\tpairs:" gc-pairs)
-(prints "\tobjects:" gc-objects)
+(defun run-gc ()
+    (def gc-res (gc-collect))
+    (def gc-atoms (head gc-res))
+    (def gc-pairs (head (tail gc-res)))
+    (def gc-objects (head (tail (tail gc-res))))
+    (prints "garbage collected")
+    (prints "\tatoms:" gc-atoms)
+    (prints "\tpairs:" gc-pairs)
+    (prints "\tobjects:" gc-objects)
+)
+(run-gc)
 
 (prints "<<< context tests >>>")
 (def global-val-1 "Unchanged")
@@ -138,18 +132,6 @@
 (prints "t   =" (xor 1))
 (prints "t   =" (xor nil 1 nil))
 (prints "nil =" (xor nil 1 nil 1))
-
-(defmacro if (condition then else)
-    `(cond
-        (,condition ,then)
-        (T ,else))
-)
-(defmacro when (condition action)
-    `(if ,condition ,action nil)
-)
-(defmacro unless (condition action)
-    `(if ,condition nil ,action)
-)
 
 (defmacro assert-equals (actual expected)
     `(unless (eq ,actual ,expected)
@@ -267,10 +249,6 @@
 (assert-equals (macro? lambda) nil)
 (assert-equals (macro? (getm defmacro)) T)
 
-(defun integer? (expr) (or (char? expr) (int? expr)))
-(defun number? (expr) (or (integer? expr) (real? expr)))
-(defun list? (expr) (if (not expr) T (and (pair? expr) (list? (tail expr)))))
-
 (assert-equals (integer? 1) T)
 (assert-equals (integer? 'a') T)
 (assert-equals (integer? 1.0) nil)
@@ -288,5 +266,28 @@
 (assert-equals (list? 'a) nil)
 (assert-equals (list? 1) nil)
 
+(let ((a 2) (b 3) (c) (d a))
+    (prints "a(2) =" a)
+    (prints "b(3) =" b)
+    (prints "c(nil) =" c)
+    (prints "d(2) =" d)
+)
 
+(let nil nil)
+(let ((a)) a)
+(let ((a 1)) a)
+
+(when T
+    (prints "success")
+    (prints "======="))
+(when nil
+    (prints "FAILED")
+    (prints "======="))
+(unless nil
+    (prints "success")
+    (prints "======="))
+(unless T
+    (prints "FAILED")
+    (prints "======="))
+(run-gc)
 

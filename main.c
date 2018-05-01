@@ -12,7 +12,7 @@
 pSTree parse_file(char *name)
 {
     FILE *f;
-    if ((f = freopen("tests/hello-world.mu", "r", stdin)) == NULL)
+    if ((f = freopen(name, "r", stdin)) == NULL)
     {
         perror("Unable to open file");
         exit(1);
@@ -24,12 +24,28 @@ pSTree parse_file(char *name)
     return parsing_result;
 }
 
+Expr load_library(pExecutor exec, char *path)
+{
+    pSTree code_tree = parse_file(path);
+    Expr code = load_parsed_tree(exec, code_tree);
+    free_stree(code_tree);
+
+    exec_set_code(exec, code);
+    Expr res = exec_execute(exec);
+    return res;
+}
+
 Expr execute_program(pSTree code_tree)
 {
     pExecutor exec = create_executor();
     exec_init(exec);
 
-    Expr code = load_parsed_tree(exec, parsing_result);
+    load_library(exec, "stdlib/stdlib.mu");
+    printf("\n====================\n");
+    printf("Stdlib loaded:");
+    printf("\n====================\n");
+
+    Expr code = load_parsed_tree(exec, code_tree);
     exec_set_code(exec, code);
 
     printf("\n====================\n");
