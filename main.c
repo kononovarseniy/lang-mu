@@ -14,6 +14,7 @@ pSTree parse_file(char *name)
     FILE *f;
     if ((f = freopen(name, "r", stdin)) == NULL)
     {
+        printf("%s\n", name);
         perror("Unable to open file");
         exit(1);
     }
@@ -70,7 +71,12 @@ Expr execute_program(pSTree code_tree)
 
 int main(int argc, char **argv)
 {
-    pSTree code_tree = parse_file("tests/hello-world.mu");
+    if (argc != 2)
+    {
+        log("USAGE: lang-mu source.file");
+        return 1;
+    }
+    pSTree code_tree = parse_file(argv[1]);
     execute_program(code_tree);
     free_stree(code_tree);
 

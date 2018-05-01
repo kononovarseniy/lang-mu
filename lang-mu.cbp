@@ -11,12 +11,17 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters="tests/hello-world.mu" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
 				<ExtraCommands>
 					<Add before="flex -o mu.scanner.c mu.l" />
 					<Add before="bison -v -d -o mu.parser.c mu.y" />
+					<Add after="mkdir -p bin/Debug/stdlib/" />
+					<Add after="cp stdlib/stdlib.mu bin/Debug/stdlib/stdlib.mu" />
+					<Add after="mkdir -p bin/Debug/tests/" />
+					<Add after="cp tests/hello-world.mu bin/Debug/tests/hello-world.mu" />
 				</ExtraCommands>
 			</Target>
 			<Target title="Release">
