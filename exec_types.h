@@ -29,16 +29,16 @@ enum ValueType
     VT_NONE = 0,
     VT_ATOM = 1,
     VT_PAIR = 2,
-    VT_FUNC_VAL = 3,
+    VT_CHAR = 3,
     VT_INT_VAL = 4,
     VT_REAL = 5,
-    VT_CHAR = 6,
-    VT_STRING_VAL = 7,
+    VT_STRING_VAL = 6,
+    VT_FUNC_VAL = 7,
 
     VT_POINTER = 1 << 7,
-    VT_FUNC_PTR = VT_FUNC_VAL | VT_POINTER,
     VT_INT_PTR = VT_INT_VAL | VT_POINTER,
-    VT_STRING_PTR = VT_STRING_VAL | VT_POINTER
+    VT_STRING_PTR = VT_STRING_VAL | VT_POINTER,
+    VT_FUNC_PTR = VT_FUNC_VAL | VT_POINTER
 };
 
 struct Expr
@@ -46,15 +46,14 @@ struct Expr
     enum ValueType type;
     union
     {
-        size_t val_pair;
         size_t val_atom;
-        pGCPointer val_ptr;
-        pFunction val_func;
+        size_t val_pair;
+        char val_char;
         pLongNum val_int;
         double val_real;
-        char val_char;
         char *val_str;
-
+        pFunction val_func;
+        pGCPointer val_ptr;
     };
 };
 
@@ -132,7 +131,5 @@ struct Executor
     Expr comma;
     Expr comma_atsign;
 };
-
-
 
 #endif // EXEC_TYPES_H_INCLUDED

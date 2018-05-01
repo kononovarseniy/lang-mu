@@ -5,7 +5,6 @@
 #include "log.h"
 
 #include "print.h"
-#include "exec_math.h"
 
 Expr set_impl(
               pExecutor exec,
@@ -493,7 +492,7 @@ BUILTIN_FUNC(remainder_builtin)
     Expr second = values[1];
     free(values);
 
-    return exec_reaminder(exec, first, second);
+    return exec_remainder(exec, first, second);
 }
 
 BUILTIN_FUNC(cons)
@@ -654,7 +653,7 @@ int parse_arguments(pExecutor exec, pUserFunction func, Expr *args, int argc)
     if (rest_len != 0)
         rest = args[rest_pos + 1];
     else
-        rest = expr_none();
+        rest = make_none();
 
     func->args = req;
     func->argc = req_len;
@@ -786,14 +785,14 @@ BUILTIN_FUNC(gensym)
     Expr value;
     if (context_get(defContext, counter.val_atom, &value) == MAP_FAILED || !is_int(value))
     {
-        value = exec_long_one(exec);
+        value = make_int_one(exec);
         if (is_none(value))
         {
             log("gensym: exec_int_one failed");
             exit(1);
         }
     }
-    long n = exec_long_to_int(exec, value);
+    long n = exec_int_to_long(exec, value);
     for (;;n++)
     {
         char name[7];
@@ -812,7 +811,7 @@ BUILTIN_FUNC(gensym)
                 log("gensym: make_atom failed");
                 exit(1);
             }
-            value = exec_long_from_int(exec, n);
+            value = make_int_from_long(exec, n);
             if (context_set(defContext, counter.val_atom, value) == MAP_FAILED)
             {
                 log("gensym: context_bind failed");
@@ -882,9 +881,9 @@ BUILTIN_FUNC(gc_collect_builtin)
     gc_collectv(exec, &atoms, &pairs, &objects);
     Expr arr[3] =
     {
-        exec_long_from_int(exec, atoms),
-        exec_long_from_int(exec, pairs),
-        exec_long_from_int(exec, objects)
+        make_int_from_long(exec, atoms),
+        make_int_from_long(exec, pairs),
+        make_int_from_long(exec, objects)
     };
     Expr res = make_list(exec, arr, 3);
     return res;

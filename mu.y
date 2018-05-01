@@ -26,10 +26,10 @@ pSTree parser_create_atom(char *atom);
 %union
 {
     char *name;
-    char *str_val;
     char char_val;
     pLongNum int_val;
     double real_val;
+    char *str_val;
     pSTree tree;
 }
 
@@ -48,16 +48,17 @@ pSTree parser_create_atom(char *atom);
 %token              COMMA_ATSIGN
 
 %token  <name>      NAME
+%token  <char_val>  CHAR_LITERAL
 %token  <int_val>   INT_LITERAL
 %token  <real_val>  REAL_LITERAL
 %token              RAT_LITERAL
-%token  <char_val>  CHAR_LITERAL
 %token  <str_val>   STR_LITERAL
 
-%type   <tree>      list
 %type   <tree>      items
-%type   <tree>      quoted
+%type   <tree>      list
 %type   <tree>      item
+%type   <tree>      quoted
+%type   <tree>      literal
 
 %%
 
@@ -69,39 +70,42 @@ list:   OPEN_PAREN items CLOSE_PAREN    {
         }
         ;
 
-item:   NAME { $$ = parser_create_atom($1); free($1); }
+item:     NAME { $$ = parser_create_atom($1); free($1); }
         | COMMA         { $$ = parser_create_atom("#:comma"); }
         | COMMA_ATSIGN  { $$ = parser_create_atom("#:comma_atsign"); }
-        | INT_LITERAL {
-            $$ = create_stree();
-            $$->type = NODE_INT;
-            $$->int_val = $1;
-        }
-        | REAL_LITERAL {
-            $$ = create_stree();
-            $$->type = NODE_REAL;
-            $$->real_val = $1;
-        }
-        | STR_LITERAL {
-            $$ = create_stree();
-            $$->type = NODE_STR;
-            $$->str_val = $1;
-        }
-        | CHAR_LITERAL {
-            $$ = create_stree();
-            $$->type = NODE_CHAR;
-            $$->char_val = $1;
-        }
         | list {
             $$ = create_stree();
             $$->type = NODE_LIST;
             $$->child = $list;
         }
         | quoted
+        | literal
         ;
 
-quoted: QUOTE item          { $$ = decorate("quote", $item); }
+quoted:   QUOTE item          { $$ = decorate("quote", $item); }
         | BACKQUOTE item    { $$ = decorate("backquote", $item); }
+        ;
+
+literal:  CHAR_LITERAL {
+            $$ = create_stree();
+            $$->type = NODE_CHAR;
+            $$->val_char = $1;
+        }
+        | INT_LITERAL {
+            $$ = create_stree();
+            $$->type = NODE_INT;
+            $$->val_int = $1;
+        }
+        | REAL_LITERAL {
+            $$ = create_stree();
+            $$->type = NODE_REAL;
+            $$->val_real = $1;
+        }
+        | STR_LITERAL {
+            $$ = create_stree();
+            $$->type = NODE_STR;
+            $$->val_str = $1;
+        }
         ;
 
 items:  { $$ = NULL; }

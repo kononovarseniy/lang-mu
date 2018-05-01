@@ -1,7 +1,6 @@
 #include "context.h"
 
 #include <stdlib.h>
-#include <stdio.h>
 #include "log.h"
 
 pContext create_context(void)

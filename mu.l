@@ -150,7 +150,7 @@ char        "\'"{str_char}"\'"
 [ \t\r]*    { }
 [\n]        { yylineno++; }
 
-.           { scanner_error("Unexpected character"); exit(1); }
+.           { scanner_error("Unexpected character"); }
 
 %%
 
@@ -170,7 +170,6 @@ double parse_real(char *text, int len)
     {
         errno = 0;
         scanner_error("Floating point overflow");
-        return 0;
     }
     return res;
 }

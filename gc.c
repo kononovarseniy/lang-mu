@@ -76,7 +76,7 @@ Expr gc_register(pHeap heap, Expr value)
         if (!gc_adjust_size(heap, heap->size + 1))
         {
             log("gc_register: gc_adjust_size failed");
-            return expr_none();
+            return make_none();
         }
     }
 

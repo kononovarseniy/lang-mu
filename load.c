@@ -9,22 +9,22 @@ Expr load_atom(pExecutor exec, pSTree item)
 
 Expr load_int(pExecutor exec, pSTree item)
 {
-    return make_int(exec, item->int_val);
+    return make_int(exec, item->val_int);
 }
 
 Expr load_real(pExecutor exec, pSTree item)
 {
-    return make_real(exec, item->real_val);
+    return make_real(exec, item->val_real);
 }
 
 Expr load_char(pExecutor exec, pSTree item)
 {
-    return make_char(exec, item->char_val);
+    return make_char(exec, item->val_char);
 }
 
 Expr load_string(pExecutor exec, pSTree item)
 {
-    return make_string(exec, item->str_val);
+    return make_string(exec, item->val_str);
 }
 
 Expr load_item(pExecutor exec, pSTree item)
@@ -45,7 +45,7 @@ Expr load_item(pExecutor exec, pSTree item)
         return load_string(exec, item);
     default:
         log("load_item: unknown node type");
-        return expr_none();
+        return make_none();
     }
 }
 
@@ -58,7 +58,7 @@ Expr load_parsed_tree(pExecutor exec, pSTree tree)
     if (is_none(head))
     {
         log("load_parsed_tree: head loading failed");
-        return expr_none();
+        return make_none();
     }
 
     // Load tail
@@ -66,7 +66,7 @@ Expr load_parsed_tree(pExecutor exec, pSTree tree)
     if (is_none(tail))
     {
         log("load_parsed_tree: tail loading failed");
-        return expr_none();
+        return make_none();
     }
 
     // Make pair
@@ -74,7 +74,7 @@ Expr load_parsed_tree(pExecutor exec, pSTree tree)
     if (is_none(pair))
     {
         log("load_parsed_tree: make_pair failed");
-        return expr_none();
+        return make_none();
     }
     return pair;
 }

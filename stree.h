@@ -6,12 +6,12 @@
 enum NodeType
 {
     NODE_NONE,
-    NODE_LIST,
     NODE_NAME,
+    NODE_LIST,
+    NODE_CHAR,
     NODE_INT,
     NODE_REAL,
-    NODE_STR,
-    NODE_CHAR
+    NODE_STR
 };
 
 typedef struct STree STree, *pSTree;
@@ -23,12 +23,12 @@ struct STree
     {
         void *data;
         char *name;
-        char *str_val;
         pSTree child;
 
-        pLongNum int_val;
-        double real_val;
-        char char_val;
+        char val_char;
+        pLongNum val_int;
+        double val_real;
+        char *val_str;
     };
 };
 
