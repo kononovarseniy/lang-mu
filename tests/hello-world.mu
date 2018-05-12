@@ -50,14 +50,14 @@
 
 (prints "<<< cond tests >>>")
 (print nil (cond))
-(cond ((not 0) (prints "never executed")
-      (nil (prints "never executed"))))
-(cond ((not 0) (prints "never executed")
-      (nil (prints "never executed")))
+(cond ((not 0) (error "never executed")
+      (nil (error "never executed"))))
+(cond ((not 0) (error "never executed")
+      (nil (error "never executed")))
       (T (prints "Hello")))
-(cond ((not 0) (prints "never executed"))
+(cond ((not 0) (error "never executed"))
       (T (prints "Hello"))
-      (T (prints "never executed"))
+      (T (error "never executed"))
       (atom not binded))
 (print 2 (cond (nil 1) (1 2)))
 
@@ -90,49 +90,6 @@
 )
 (run-gc)
 
-(prints "<<< context tests >>>")
-(def global-val-1 "Unchanged")
-(def global-val-2 "Unchanged")
-
-(defun set-global-val ()
-    (set global-val-1 "Changed") // global
-    (def global-val-2 "Changed") // local
-)
-(set-global-val)
-(prints "Changed value is" global-val-1)
-(prints "Unchanged value is" global-val-2)
-
-(prints "<<< set pair test >>>")
-(def res '(1 2))
-(set-head res 'head)
-(set-tail res '(tail))
-(print res)
-
-(prints "             <<< eq >>>")
-(prints "t   =" (eq 'a 'a))
-(prints "t   =" (eq 1 1))
-(prints "nil =" (eq 1 2))
-(prints "nil =" (eq 'a 'b))
-(prints "nil =" (eq '(1) '(1)))
-(prints "             <<< and >>>")
-(prints "t   =" (and 1 2))
-(prints "nil =" (and 1 1 nil never-executed))
-(prints "t   =" (and))
-(prints "nil =" (and nil))
-(prints "             <<< or >>>")
-(prints "nil =" (or))
-(prints "t   =" (or 1))
-(prints "t   =" (or 1 nil never-executed))
-(prints "             <<< not >>>")
-(prints "t   =" (not nil))
-(prints "nil =" (not '(2 3)))
-(prints "             <<< xor >>>")
-(prints "nil =" (xor))
-(prints "nil =" (xor nil))
-(prints "t   =" (xor 1))
-(prints "t   =" (xor nil 1 nil))
-(prints "nil =" (xor nil 1 nil 1))
-
 (defmacro assert-equals (actual expected)
     `(unless (equals ,actual ,expected)
         (prints
@@ -143,6 +100,76 @@
 (prints "                    <<< assert test >>> (2 == 2) (2 != 3)")
 (assert-equals 2 2)
 (assert-equals 2 3)
+
+(prints "<<< context tests >>>")
+(def global-val-1 "Unchanged")
+(def global-val-2 "Unchanged")
+
+(defun set-global-val ()
+    (set global-val-1 "Changed") // global
+    (def global-val-2 "Changed") // local
+)
+(set-global-val)
+(assert-equals global-val-1 "Changed")
+(assert-equals global-val-2 "Unchanged")
+
+(prints "<<< set pair test >>>")
+(def res '(1 2))
+(set-head res 'head)
+(set-tail res '(tail))
+(assert-equals res '(head tail))
+
+(when T
+    (prints "success")
+    (prints "======="))
+(when nil
+    (prints "FAILED")
+    (prints "======="))
+(unless nil
+    (prints "success")
+    (prints "======="))
+(unless T
+    (prints "FAILED")
+    (prints "======="))
+
+(prints "                    <<< let tests >>>")
+(let ((a 2) (b 3) (c) (d a))
+    (assert-equals a 2)
+    (assert-equals b 3)
+    (assert-equals c nil)
+    (assert-equals d 2)
+)
+
+(let nil nil)
+(let ((a)) a)
+(let ((a 1)) a)
+
+(prints "                    <<< test logic >>>")
+(prints "<<< eq >>>")
+(assert-equals (eq 'a 'a) t)
+(assert-equals (eq 1 1) t)
+(assert-equals (eq 1 2) nil)
+(assert-equals (eq 'a 'b) nil)
+(assert-equals (eq '(1) '(1)) nil)
+(prints "<<< and >>>")
+(assert-equals (and 1 2) t)
+(assert-equals (and 1 1 nil never-executed) nil)
+(assert-equals (and) t)
+(assert-equals (and nil) nil)
+(prints "<<< or >>>")
+(assert-equals (or) nil)
+(assert-equals (or 1) t)
+(assert-equals (or 1 nil never-executed) t)
+(prints "<<< not >>>")
+(assert-equals (not nil) t)
+(assert-equals (not '(2 3)) nil)
+(prints "<<< xor >>>")
+(assert-equals (xor) nil)
+(assert-equals (xor nil) nil)
+(assert-equals (xor 1) t)
+(assert-equals (xor nil 1 nil) t)
+(assert-equals (xor nil 1 nil 1) nil)
+
 (prints "                    <<< test math >>>")
 (prints "<< sum >>>")
 (assert-equals (+) 0)
@@ -267,32 +294,8 @@
 (assert-equals (list? 'a) nil)
 (assert-equals (list? 1) nil)
 
-(let ((a 2) (b 3) (c) (d a))
-    (prints "a(2) =" a)
-    (prints "b(3) =" b)
-    (prints "c(nil) =" c)
-    (prints "d(2) =" d)
-)
-
-(let nil nil)
-(let ((a)) a)
-(let ((a 1)) a)
-
-(when T
-    (prints "success")
-    (prints "======="))
-(when nil
-    (prints "FAILED")
-    (prints "======="))
-(unless nil
-    (prints "success")
-    (prints "======="))
-(unless T
-    (prints "FAILED")
-    (prints "======="))
-(run-gc)
-
 (prints "                    <<< stdlib tests >>>")
+(prints "<<< length >>>")
 (assert-equals (length '(1 2 3 4)) 4)
 (assert-equals (length '(1 2 () 4)) 4)
 (assert-equals (length '()) 0)
@@ -315,7 +318,7 @@
 (assert-equals (str-to-list "0123456" 2 3) '( '2' '3' '4'))
 (assert-equals (str-to-list "0123456" 0 0) nil)
 
-//(prints "<<< str-from-list >>>")
+(prints "<<< str-from-list >>>")
 // Ambigous syntax: quote before list of chars
 // Solution put a space between oppening bracket and first item
 (assert-equals (str-from-list '( '0' '1' '2')) "012")
@@ -343,7 +346,7 @@
 (assert-equals (str-cmp "!!23" 2 "0122" 2) 1)
 (assert-equals (str-cmp "0" 0  1 "!123" 0 1) 1)
 
-//(prints "<<< str-cat >>>")
+(prints "<<< str-cat >>>")
 (assert-equals (str-cat) "")
 (assert-equals (str-cat "") "")
 (assert-equals (str-cat "" "") "")
