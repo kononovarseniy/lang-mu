@@ -3,6 +3,8 @@
 
 #include "exec.h"
 
+#define EVAL_ARG(IND) exec_eval(exec, callContext, args[IND])
+
 /*
     Built-in predicates
 */
@@ -56,6 +58,26 @@ BUILTIN_FUNC(quotient_builtin);
 BUILTIN_FUNC(remainder_builtin);
 
 /*
+    Strings
+*/
+BUILTIN_FUNC(str_from_list);
+BUILTIN_FUNC(str_to_list);
+BUILTIN_FUNC(str_repeat_char);
+BUILTIN_FUNC(str_repeat_str);
+BUILTIN_FUNC(str_len);
+BUILTIN_FUNC(str_at);
+BUILTIN_FUNC(str_cmp_sub);
+BUILTIN_FUNC(str_cat);
+BUILTIN_FUNC(str_ind);
+
+BUILTIN_FUNC(str_insert);
+BUILTIN_FUNC(str_sub);
+BUILTIN_FUNC(str_remove);
+
+BUILTIN_FUNC(to_lower);
+BUILTIN_FUNC(to_upper);
+
+/*
     List functions
 */
 BUILTIN_FUNC(cons);
@@ -76,6 +98,7 @@ BUILTIN_FUNC(macro);
 BUILTIN_FUNC(gensym);
 BUILTIN_FUNC(macroexpand);
 
+BUILTIN_FUNC(eval_builtin);
 BUILTIN_FUNC(cond);
 BUILTIN_FUNC(let);
 BUILTIN_FUNC(error);

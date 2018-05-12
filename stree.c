@@ -23,7 +23,7 @@ void free_stree(pSTree tree)
     switch (tree->type)
     {
     case NODE_STR:
-        free(tree->val_str);
+        free_string(tree->val_str);
         break;
     case NODE_NAME:
         free(tree->name);

@@ -27,7 +27,7 @@ long exec_int_to_long(pExecutor exec, Expr num)
         log("exec_int_to_long: argument is not integer");
         exit(1);
     }
-    return longnum_to_int(dereference(num).val_int);
+    return longnum_to_long(dereference(num).val_int);
 }
 double exec_int_to_double(pExecutor exec, Expr num)
 {
@@ -165,7 +165,7 @@ Expr exec_convert_to_int(pExecutor exec, Expr expr)
         return expr;
     else if (is_char(expr))
     {
-        pLongNum num = longnum_from_int(expr.val_char);
+        pLongNum num = longnum_from_long(expr.val_char);
         Expr res = make_int(exec, num);
         free_longnum(num);
         return res;
@@ -178,7 +178,7 @@ Expr exec_convert_to_char(pExecutor exec, Expr expr)
     if (is_real(expr))
         return make_char(exec, (char)expr.val_real);
     else if (is_int(expr))
-        return make_char(exec, (char)longnum_to_int(dereference(expr).val_int));
+        return make_char(exec, (char)longnum_to_long(dereference(expr).val_int));
     else if (is_char(expr))
         return expr;
     else

@@ -16,10 +16,10 @@ pLongNum longnum_one();
 pLongNum longnum_negative_one();
 
 pLongNum longnum_parse(char *num, int s); //Строка в число
-pLongNum longnum_from_int(int num);
+pLongNum longnum_from_long(long num);
 pLongNum longnum_from_double(double num);
 char *longnum_to_string(pLongNum a, int base);
-long longnum_to_int(pLongNum a);
+long longnum_to_long(pLongNum a);
 double longnum_to_double(pLongNum a); //Длинное число в число с плавающей точкой
 //pLongNum longnum_trans_to_dec(pLongNum a, int s); //Перевод в десятичную СС - в разработке
 //pLongNum longnum_trans_from_dec(pLongNum a, int s); //Перевод из десятичной СС - в разработке

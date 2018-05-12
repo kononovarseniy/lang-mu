@@ -690,13 +690,6 @@ pUserFunction build_user_function(pExecutor exec, Expr *args, int argc, Expr *bo
     return res;
 }
 
-int is_list(pExecutor exec, Expr expr)
-{
-    return
-        expr.type == VT_PAIR ||
-        (expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom);
-}
-
 Expr lambda_impl(pExecutor exec, pContext context, Expr *args, int argc, enum FunctionType type)
 {
     /*
@@ -740,6 +733,23 @@ BUILTIN_FUNC(lambda)
 BUILTIN_FUNC(macro)
 {
     return lambda_impl(exec, callContext, args, argc, FT_USER_MACRO);
+}
+
+BUILTIN_FUNC(eval_builtin)
+{
+    if (argc > 1)
+    {
+        log("eval: too many arguments");
+        exit(1);
+    }
+    if (argc < 1)
+    {
+        log("eval: too few arguments");
+        exit(1);
+    }
+    // Get expression to evaluate
+    Expr expr = exec_eval(exec, callContext, args[0]);
+    return exec_eval(exec, callContext, expr);
 }
 
 BUILTIN_FUNC(cond)

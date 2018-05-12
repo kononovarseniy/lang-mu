@@ -280,7 +280,7 @@ int longnum_compare(pLongNum a, pLongNum b)
 }
 
 //Конвертация типов и систем счисления
-pLongNum longnum_from_int(int num)
+pLongNum longnum_from_long(long num)
 {
     pLongNum a = create_longnum();
     if(num < 0) a->s = -1;

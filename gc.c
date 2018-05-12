@@ -102,7 +102,7 @@ void gc_free(pHeap heap, pGCPointer ptr)
         free_function(value.val_func);
         break;
     case VT_STRING_VAL:
-        free(value.val_str);
+        free_string(value.val_str);
         break;
     case VT_INT_VAL:
         free_longnum(value.val_int);

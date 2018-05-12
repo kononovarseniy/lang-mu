@@ -252,6 +252,7 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "set-tail", set_tail_builtin);
 
     register_function(exec, global, "lambda", lambda);
+    register_function(exec, global, "eval", eval_builtin);
     register_function(exec, global, "cond", cond);
     register_function(exec, global, "let", let);
     register_function(exec, global, "error", error);
@@ -294,6 +295,16 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "string?", string_p);
     register_function(exec, global, "function?", function_p);
     register_function(exec, global, "macro?", macro_p);
+    // Strings
+    register_function(exec, global, "str-len", str_len);
+    register_function(exec, global, "str-at", str_at);
+    register_function(exec, global, "__str-from-list", str_from_list);
+    register_function(exec, global, "__str-to-list", str_to_list);
+    register_function(exec, global, "__str-repeat-char", str_repeat_char);
+    register_function(exec, global, "__str-repeat-str", str_repeat_str);
+    register_function(exec, global, "__str-cmp-sub", str_cmp_sub);
+    register_function(exec, global, "__str-cat", str_cat);
+    register_function(exec, global, "__str-ind", str_ind);
 }
 
 void exec_set_code(pExecutor exec, Expr code)

@@ -1,5 +1,7 @@
 %code requires {
 #include "stree.h"
+#include "stdlib/longnum_stub.h"
+#include "stdlib/str.h"
 }
 
 %{
@@ -8,7 +10,6 @@
 #include <string.h>
 
 #include "stree.h"
-#include "stdlib/longnum.h"
 #include "strutils.h"
 
 // Prototype of yylex implemented in auto-generated "mu.scanner.c"
@@ -29,7 +30,7 @@ pSTree parser_create_atom(char *atom);
     char char_val;
     pLongNum int_val;
     double real_val;
-    char *str_val;
+    pString str_val;
     pSTree tree;
 }
 

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include "stdlib/str.h"
 
 #include "log.h"
 
@@ -11,16 +12,6 @@ char *copystr(const char *s)
 {
     char *res = malloc((strlen(s) + 1) * sizeof(char));
     strcpy(res, s);
-    return res;
-}
-
-char *concatstr(const char *a, const char *b)
-{
-    int len1 = strlen(a);
-    int len2 = strlen(b);
-    char *res = malloc((len1 + len2 + 1) * sizeof(char));
-    strcpy(res, a);
-    strcpy(res + len1, b);
     return res;
 }
 
@@ -46,7 +37,7 @@ char tohex(int digit)
     return "0123456789abcdef"[digit];
 }
 
-char *unescape_string(char *str, int len)
+pString unescape_string(char *str, int len)
 {
     char *res = malloc((len + 1) * sizeof(char));
     if (res == NULL)
@@ -99,7 +90,15 @@ char *unescape_string(char *str, int len)
         }
     }
     res[pos] = '\0';
-    return res;
+
+    pString res_str = string_from_array(res, pos);
+    free(res);
+    if (res_str == NULL)
+    {
+        log("unescape_string: string_from_array failed");
+        return NULL;
+    }
+    return res_str;
 }
 
 void write_to_buf(char **buf, int *len, int pos, char ch)

@@ -17,5 +17,6 @@ _Bool is_real(Expr expr);
 _Bool is_string(Expr expr);
 _Bool is_function(Expr expr);
 _Bool is_macro(Expr expr);
+_Bool is_list(pExecutor exec, Expr expr);
 
 #endif // EXEC_PREDICATES_H_INCLUDED

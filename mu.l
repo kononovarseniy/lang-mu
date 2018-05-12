@@ -13,7 +13,6 @@ int yyerror(char *s);
 
 int hextodec(char ch);
 
-char *unescape_string(char *str, int len);
 pLongNum parse_int(char *text, int base);
 double parse_real(char *text, int len);
 void scanner_error(const char *format, ...);
@@ -91,9 +90,9 @@ char        "\'"{str_char}"\'"
 {bin_int}   { yylval.int_val = parse_int(yytext + 2, 2); return INT_LITERAL; }
 
 {char}      {
-        char *str = unescape_string(yytext + 1, yyleng - 2);
-        yylval.char_val = str[0];
-        free(str);
+        pString str = unescape_string(yytext + 1, yyleng - 2);
+        yylval.char_val = str->buf[0];
+        free_string(str);
         return CHAR_LITERAL;
     }
 

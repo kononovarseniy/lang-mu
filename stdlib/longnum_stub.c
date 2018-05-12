@@ -81,9 +81,9 @@ pLongNum longnum_parse(char *num, int s)
         log("longnum_parse: not a valid integer");
         return NULL;
     }
-    return longnum_from_int(result);
+    return longnum_from_long(result);
 }
-pLongNum longnum_from_int(int num)
+pLongNum longnum_from_long(long num)
 {
     pLongNum res = create_longnum();
     if (res == NULL)
@@ -155,7 +155,7 @@ char *longnum_to_string(pLongNum a, int base)
     res[digits] = '\0';
     return res;
 }
-long longnum_to_int(pLongNum a)
+long longnum_to_long(pLongNum a)
 {
     return a->num;
 }
@@ -241,7 +241,7 @@ pLongNum longnum_greatest_common_divisor(pLongNum a, pLongNum b)
         else
             n2 %= n1;
     }
-    return longnum_from_int(n1+n2);
+    return longnum_from_long(n1+n2);
 }
 
 //Функции сравнения двух длинных чисел

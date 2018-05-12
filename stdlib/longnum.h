@@ -18,7 +18,7 @@ pLongNum longnum_one();
 pLongNum longnum_negative_one();
 
 pLongNum longnum_parse(char *num, int s); //Строка в число
-pLongNum longnum_from_int(int num);
+pLongNum longnum_from_long(int num);
 char *longnum_to_string(pLongNum a); //Число в строку - не работает
 double longnum_to_double(pLongNum a); //Длинное число в число с плавающей точкой
 //pLongNum longnum_trans_to_dec(pLongNum a, int s); //Перевод в десятичную СС - в разработке

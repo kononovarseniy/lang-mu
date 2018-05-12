@@ -116,14 +116,16 @@ void print_string(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, 
 
     expr = dereference(expr);
 
+    char *cstr = string_to_cstring(expr.val_str);
     if (flags & PF_UNESCAPE)
-        fprintf(f, "%s", expr.val_str);
+        fprintf(f, "%s", cstr);
     else
     {
-        char *res = escape_string(expr.val_str, strlen(expr.val_str));
+        char *res = escape_string(cstr, strlen(cstr));
         fprintf(f, "\"%s\"", res);
         free(res);
     }
+    free(cstr);
     print_wrap(f, flags);
 }
 

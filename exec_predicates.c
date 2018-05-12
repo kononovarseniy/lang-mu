@@ -25,7 +25,7 @@ _Bool is_equal(Expr a, Expr b)
     case VT_REAL:
         return a.val_real == b.val_real;
     case VT_STRING_PTR:
-        return strcmp(
+        return string_compare(
             dereference(a).val_str,
             dereference(b).val_str) == 0;
     case VT_PAIR:
@@ -89,4 +89,11 @@ _Bool is_macro(Expr expr)
     return
         expr.type == VT_FUNC_PTR &&
         dereference(expr).val_func->type == FT_USER_MACRO;
+}
+
+_Bool is_list(pExecutor exec, Expr expr)
+{
+    return
+        expr.type == VT_PAIR ||
+        (expr.type == VT_ATOM && expr.val_atom == exec->nil.val_atom);
 }

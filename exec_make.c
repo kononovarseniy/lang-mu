@@ -97,7 +97,7 @@ Expr make_int_negative_one(pExecutor exec)
 
 Expr make_int_from_long(pExecutor exec, long value)
 {
-    pLongNum num = longnum_from_int(value);
+    pLongNum num = longnum_from_long(value);
     if (num == NULL)
     {
         log("make_int_from_long: longnum_from_int failed");
@@ -129,27 +129,55 @@ Expr make_char(pExecutor exec, char value)
     return res;
 }
 
-Expr make_string(pExecutor exec, char *value)
+Expr make_string_without_clone(pExecutor exec, pString value)
 {
-    char *copy = strdup(value);
-    if (copy == NULL)
-    {
-        perror("make_string: strdup failed");
-        return make_none();
-    }
-
     Expr res;
     res.type = VT_STRING_VAL;
-    res.val_str = copy;
+    res.val_str = value;
 
     Expr ptr = gc_register(exec->heap, res);
     if (is_none(ptr))
     {
-        log("make_string: gc_register failed");
-        free(copy);
+        log("make_string_without_clone: gc_register failed");
         return make_none();
     }
     return ptr;
+}
+
+Expr make_string(pExecutor exec, pString value)
+{
+    pString str = string_clone(value);
+    if (str == NULL)
+    {
+        perror("make_string: string_clone failed");
+        return make_none();
+    }
+    Expr res = make_string_without_clone(exec, str);
+    if (is_none(res))
+    {
+        free_string(str);
+        log("make_string: make_string_without_clone failed");
+        return make_none();
+    }
+    return res;
+}
+
+Expr make_string_from_array(pExecutor exec, char *value, size_t len)
+{
+    pString str = string_from_array(value, len);
+    if (str == NULL)
+    {
+        perror("make_string_from_array: string_from_array failed");
+        return make_none();
+    }
+    Expr res = make_string_without_clone(exec, str);
+    if (is_none(res))
+    {
+        free_string(str);
+        log("make_string_from_array: make_string_without_clone failed");
+        return make_none();
+    }
+    return res;
 }
 
 Expr make_function(pExecutor exec, pFunction value)

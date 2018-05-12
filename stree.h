@@ -2,6 +2,7 @@
 #define STREE_H_INCLUDED
 
 #include "stdlib/longnum_stub.h"
+#include "stdlib/str.h"
 
 enum NodeType
 {
@@ -28,7 +29,7 @@ struct STree
         char val_char;
         pLongNum val_int;
         double val_real;
-        char *val_str;
+        pString val_str;
     };
 };
 

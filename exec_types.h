@@ -2,6 +2,7 @@
 #define EXEC_TYPES_H_INCLUDED
 
 #include "stdlib/longnum_stub.h"
+#include "stdlib/str.h"
 
 #include "context.h"
 
@@ -51,7 +52,7 @@ struct Expr
         char val_char;
         pLongNum val_int;
         double val_real;
-        char *val_str;
+        pString val_str;
         pFunction val_func;
         pGCPointer val_ptr;
     };
