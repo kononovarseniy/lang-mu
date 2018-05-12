@@ -404,7 +404,7 @@
 (assert-equals (str-last-ind "=-=-4545=-=-" "45" 6 2) -1)
 (assert-equals (str-last-ind "=-=-4545=-=-" "45" 5 2) 4)
 (assert-equals (str-last-ind "=-=-4545=-=-" "45" 7 2) 6)
-/*(assert-equals (str-last-ind "=-=-4545=-=-" "5=" 7 2) -1)
+(assert-equals (str-last-ind "=-=-4545=-=-" "5=" 7 2) -1)
 (assert-equals (str-last-ind "=-=-4545=-=-" "-4" 5 2) -1)
 (assert-equals (str-last-ind "111" "1" 1 0) -1)
 (assert-equals (str-last-ind "111" "1" 3 0) -1)
@@ -439,4 +439,4 @@
 (assert-equals (str-last-ind "012" '1') 1)
 (assert-equals (str-last-ind "012" '2') 2)
 (assert-equals (str-last-ind "0122" '2') 3)
-(assert-equals (str-last-ind "0122" '2' 2) 2)*/
+(assert-equals (str-last-ind "0122" '2' 2) 2)

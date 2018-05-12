@@ -12,7 +12,7 @@ int gc_adjust_size(pHeap heap, size_t size)
     if (cur_blocks == req_blocks) return 1;
     int new_size = req_blocks * BLOCK_SIZE;
 
-    pGCPointer array = realloc(heap->values, new_size * sizeof(GCPointer));
+    pPointerInfo array = realloc(heap->values, new_size * sizeof(PointerInfo));
     if (array == NULL && req_blocks != 0)
     {
         perror("gc_adjust_size: realloc failed");
@@ -26,40 +26,9 @@ int gc_adjust_size(pHeap heap, size_t size)
     return 1;
 }
 
-int is_valid_ptr(pHeap heap, pGCPointer ptr)
-{
-    if (ptr < heap->values || ptr >= heap->values + heap->size)
-        return 0;
-    return ptr->flags & GC_USED;
-}
-
-pHeap create_heap()
-{
-    pHeap res = malloc(sizeof(Heap));
-    if (res == NULL)
-    {
-        perror("create_heap: malloc failed");
-        return NULL;
-    }
-    res->size = 0;
-    res->values = NULL;
-    return res;
-}
-void free_heap(pHeap heap)
-{
-    for (size_t i = 0; i < heap->size; i++)
-    {
-        if (heap->values[i].flags & GC_USED)
-        {
-            gc_free(heap, heap->values + i);
-        }
-    }
-    free(heap->values);
-    free(heap);
-}
-
 Expr gc_register(pHeap heap, Expr value)
 {
+    // Find place in pointer table
     int success = 0;
     size_t ind;
     for (size_t i = 0; i < heap->size; i++)
@@ -79,23 +48,34 @@ Expr gc_register(pHeap heap, Expr value)
             return make_none();
         }
     }
-
-    pGCPointer ptr = heap->values + ind;
-    ptr->flags = GC_USED;
+    // Create new pointer
+    pPointer ptr = malloc(sizeof(Pointer));
+    if (ptr == NULL)
+    {
+        log("gc_register: memory allocation failed");
+        return make_none();
+    }
+    ptr->id = ind;
     ptr->value = value;
+
+    heap->values[ind].ptr = ptr;
+    heap->values[ind].flags = GC_USED;
+
     Expr res;
     res.type = value.type | VT_POINTER;
     res.val_ptr = ptr;
     return res;
 }
 
-void gc_free(pHeap heap, pGCPointer ptr)
+void gc_free(pHeap heap, pPointerInfo info)
 {
-    if (!is_valid_ptr(heap, ptr))
+    if (!(info->flags & GC_USED))
         return;
-    Expr value = ptr->value;
-    ptr->flags = GC_NONE;
-    // free value
+    Expr value = info->ptr->value;
+    // Free pointer
+    info->flags = GC_NONE;
+    free(info->ptr);
+    // Free value
     switch (value.type)
     {
     case VT_FUNC_VAL:
@@ -111,9 +91,35 @@ void gc_free(pHeap heap, pGCPointer ptr)
     }
 }
 
+pHeap create_heap()
+{
+    pHeap res = malloc(sizeof(Heap));
+    if (res == NULL)
+    {
+        perror("create_heap: malloc failed");
+        return NULL;
+    }
+    res->size = 0;
+    res->values = NULL;
+    return res;
+}
+
+void free_heap(pHeap heap)
+{
+    for (size_t i = 0; i < heap->size; i++)
+    {
+        if (heap->values[i].flags & GC_USED)
+        {
+            gc_free(heap, heap->values + i);
+        }
+    }
+    free(heap->values);
+    free(heap);
+}
+
 void gc_mark_atom(pExecutor exec, size_t atom);
 void gc_mark_pair(pExecutor exec, size_t pair);
-void gc_mark_pointer(pExecutor exec, pGCPointer ptr);
+void gc_mark_pointer(pExecutor exec, pPointer ptr);
 void gc_scan_user_function(pExecutor exec, pUserFunction func);
 void gc_mark_function(pExecutor exec, pFunction func);
 void gc_mark_expression(pExecutor exec, Expr expr);
@@ -136,11 +142,12 @@ void gc_mark_pair(pExecutor exec, size_t pair)
     gc_mark_expression(exec, exec->cdrs[pair]);
 }
 
-void gc_mark_pointer(pExecutor exec, pGCPointer ptr)
+void gc_mark_pointer(pExecutor exec, pPointer ptr)
 {
-    if (ptr->flags & GC_REFERENCED)
+    pPointerInfo info = exec->heap->values + ptr->id;
+    if (info->flags & GC_REFERENCED)
         return;
-    ptr->flags |= GC_REFERENCED;
+    info->flags |= GC_REFERENCED;
 
     gc_mark_expression(exec, ptr->value);
 }
@@ -283,14 +290,14 @@ int gc_del_pointers(pExecutor exec)
     size_t cnt = heap->size;
     for (size_t i = 0; i < cnt; i++)
     {
-        pGCPointer ptr = heap->values + i;
-        if (ptr->flags & GC_USED)
+        pPointerInfo info = heap->values + i;
+        if (info->flags & GC_USED)
         {
-            if (ptr->flags & GC_REFERENCED)
-                ptr->flags &= ~GC_REFERENCED;
+            if (info->flags & GC_REFERENCED)
+                info->flags &= ~GC_REFERENCED;
             else
             {
-                gc_free(heap, ptr);
+                gc_free(heap, info);
                 deleted++;
             }
         }

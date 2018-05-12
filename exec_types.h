@@ -13,7 +13,8 @@ enum ValueType;
 typedef struct Expr Expr;
 
 enum GCFlags;
-typedef struct GCPointer GCPointer, *pGCPointer;
+typedef struct Pointer Pointer, *pPointer;
+typedef struct PointerInfo PointerInfo, *pPointerInfo;
 typedef struct Heap Heap, *pHeap;
 
 enum FunctionType;
@@ -54,7 +55,7 @@ struct Expr
         double val_real;
         pString val_str;
         pFunction val_func;
-        pGCPointer val_ptr;
+        pPointer val_ptr;
     };
 };
 
@@ -66,16 +67,22 @@ enum GCFlags
     GC_PROTECTED = 1 << 2
 };
 
-struct GCPointer
+struct Pointer
+{
+    size_t id;
+    Expr value;
+};
+
+struct PointerInfo
 {
     enum GCFlags flags;
-    Expr value;
+    pPointer ptr;
 };
 
 struct Heap
 {
     size_t size;
-    pGCPointer values;
+    pPointerInfo values;
 };
 
 enum FunctionType
