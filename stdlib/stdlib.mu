@@ -29,7 +29,7 @@
         (,condition nil)
         (T ,@actions)))
 
-(defmacro println (&rest args) `(block (print ,@args) (prints '\n')))
+(defmacro println (&rest args) `{(print ,@args) (prints '\n')})
 (defmacro printlns (&rest args) `(prints ,@args '\n'))
 
 ///

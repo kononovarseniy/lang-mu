@@ -57,6 +57,7 @@ pSTree parser_create_atom(char *atom);
 
 %type   <tree>      items
 %type   <tree>      list
+%type   <tree>      block
 %type   <tree>      item
 %type   <tree>      quoted
 %type   <tree>      literal
@@ -70,6 +71,10 @@ list:   OPEN_PAREN items CLOSE_PAREN    {
             $$ = $items;
         }
         ;
+block:  OPEN_BRACE items CLOSE_BRACE    {
+            $$ = $items;
+        }
+        ;
 
 item:     NAME { $$ = parser_create_atom($1); free($1); }
         | COMMA         { $$ = parser_create_atom("#:comma"); }
@@ -79,6 +84,12 @@ item:     NAME { $$ = parser_create_atom($1); free($1); }
             $$->type = NODE_LIST;
             $$->child = $list;
         }
+        | block {
+            $$ = create_stree();
+            $$->type = NODE_LIST;
+            $$->child = parser_create_atom("block");
+            stree_append_child($$, $block);
+        }
         | quoted
         | literal
         ;
@@ -86,7 +97,6 @@ item:     NAME { $$ = parser_create_atom($1); free($1); }
 quoted:   QUOTE item          { $$ = decorate("quote", $item); }
         | BACKQUOTE item    { $$ = decorate("backquote", $item); }
         ;
-
 literal:  CHAR_LITERAL {
             $$ = create_stree();
             $$->type = NODE_CHAR;
