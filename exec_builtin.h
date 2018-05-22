@@ -107,5 +107,6 @@ BUILTIN_FUNC(block);
 BUILTIN_FUNC(print);
 BUILTIN_FUNC(prints);
 BUILTIN_FUNC(gc_collect_builtin);
+BUILTIN_FUNC(scanline);
 
 #endif // EXEC_BUILTIN_H_INCLUDED

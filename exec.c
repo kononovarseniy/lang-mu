@@ -257,8 +257,6 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "let", let);
     register_function(exec, global, "error", error);
     register_function(exec, global, "block", block);
-    register_function(exec, global, "print", print);
-    register_function(exec, global, "prints", prints);
     register_function(exec, global, "quote", quote);
     register_function(exec, global, "cons", cons);
     register_function(exec, global, "head", head);
@@ -311,6 +309,10 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "__str-remove", str_remove);
     register_function(exec, global, "to-upper", to_upper);
     register_function(exec, global, "to-lower", to_lower);
+    // IO
+    register_function(exec, global, "print", print);
+    register_function(exec, global, "prints", prints);
+    register_function(exec, global, "scanline", scanline);
 }
 
 void exec_set_code(pExecutor exec, Expr code)

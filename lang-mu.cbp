@@ -56,6 +56,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="exec_builtin.h" />
+		<Unit filename="exec_builtin_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="exec_builtin_predicates.c">
 			<Option compilerVar="CC" />
 		</Unit>

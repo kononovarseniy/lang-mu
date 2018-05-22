@@ -120,28 +120,6 @@ BUILTIN_FUNC(set_tail_builtin)
     return set_pair_impl(exec, callContext, args, argc, "set-tail", set_tail);
 }
 
-BUILTIN_FUNC(print)
-{
-    for (int i = 0; i < argc; i++)
-    {
-        Expr value = exec_eval(exec, callContext, args[i]);
-        print_expression(stdout, exec, value, PF_SHORT_QUOTE, 0);
-        if (i < argc - 1) printf(" ");
-    }
-    return exec->t;
-}
-
-BUILTIN_FUNC(prints)
-{
-    for (int i = 0; i < argc; i++)
-    {
-        Expr value = exec_eval(exec, callContext, args[i]);
-        print_expression(stdout, exec, value, PF_SHORT_QUOTE | PF_UNESCAPE, 0);
-        if (i < argc - 1) printf(" ");
-    }
-    return exec->t;
-}
-
 BUILTIN_FUNC(quote)
 {
     if (argc > 1)
@@ -831,6 +809,7 @@ BUILTIN_FUNC(error)
         print_expression(stderr, exec, value, PF_SHORT_QUOTE | PF_UNESCAPE, 0);
         if (i < argc - 1) fprintf(stderr, " ");
     }
+    fprintf(stderr, "\n");
     exit(1);
 }
 

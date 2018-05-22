@@ -26,17 +26,21 @@ Expr execute_program(pSTree code_tree)
     exec_init(exec);
 
     load_library(exec, "stdlib/stdlib.mu");
+    /*
     printf("\n====================\n");
     printf("Stdlib loaded:");
     printf("\n====================\n");
+    */
 
     Expr code = load_parsed_tree(exec, code_tree);
     exec_set_code(exec, code);
 
+    /*
     printf("\n====================\n");
     printf("Code loaded:");
     printf("\n====================\n");
     print_expression(stdout, exec, code, PF_DEFAULT, 0);
+    */
 
     printf("\n====================\n");
     printf("Program output:");
