@@ -9,22 +9,6 @@
 
 #include "stdlib/longnum_stub.h"
 
-pSTree parse_file(char *name)
-{
-    FILE *f;
-    if ((f = freopen(name, "r", stdin)) == NULL)
-    {
-        printf("%s\n", name);
-        perror("Unable to open file");
-        exit(1);
-    }
-
-    yyparse();
-
-    fclose(f);
-    return parsing_result;
-}
-
 Expr load_library(pExecutor exec, char *path)
 {
     pSTree code_tree = parse_file(path);

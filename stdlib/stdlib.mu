@@ -137,6 +137,15 @@
                 (equals (tail a) (tail b))))
     )
 )
+
+///////////////////////////////////////////////////////////////////////////////
+/// Math                                                                    ///
+///////////////////////////////////////////////////////////////////////////////
+(defun abs (num)
+    (unless (number? num)
+        (error "abs: argument not a number"))
+    (if (< num 0) (- num) num)
+)
 ///////////////////////////////////////////////////////////////////////////////
 /// Strings                                                                 ///
 ///////////////////////////////////////////////////////////////////////////////
@@ -155,12 +164,12 @@
 (defun str-to-list (str &optional (start 0) (len nil))
     (unless (string? str)
         (error "str-to-list: argument `string` must be a string"))
-    (unless (integer? start)
+    (unless (int? start)
         (error "str-to-list: argument `start` must be an integer"))
     (when (or (< start 0) (> start (str-len str)))
         (error "str-to-list: argument `start` is out of range"))
     (when len
-        (unless (integer? len)
+        (unless (int? len)
             (error "str-to-list: argument `len` must be an integer"))
         (when (or (< len 0) (> (+ start len ) (str-len str)))
             (error "str-to-list: argument `len` is out of range")
@@ -169,7 +178,7 @@
 )
 
 (defun str-repeat (sub count)
-    (unless (integer? count)
+    (unless (int? count)
         (error "str-repeat: argument `count` not an integer"))
     (cond
         ((string? sub) (__str-repeat-str sub count))
@@ -218,17 +227,23 @@
     (apply __str-cat args)
 )
 
+(defun str-cat-list (args)
+    (unless (all string? args)
+        (error "str-cat-list: string expected"))
+    (apply __str-cat args)
+)
+
 (defun str-ind (str sub &optional (start 0) (count nil))
     (unless (string? str)
         (error "str-ind: argument `str` not a string"))
     (unless (or (string? sub) (char? sub))
         (error "str-ind: argument `sub` not a string or char"))
-    (unless (integer? start)
+    (unless (int? start)
         (error "str-ind: argument `start` not an integer"))
     (when (or (< start 0) (> start (str-len str)))
         (error "str-ind: argument `start` is out of range"))
     (when count
-        (unless (integer? count)
+        (unless (int? count)
             (error "str-ind: argument `count` not an integer"))
         (when (or (< count 0) (> (+ start count) (str-len str)))
             (error "str-ind: argument `count` is out of range"))
@@ -243,14 +258,14 @@
         (error "str-last-ind: argument `sub` not a string or char"))
     
     (when start
-        (unless (integer? start)
+        (unless (int? start)
             (error "str-last-ind: argument `start` not an integer"))
         (when (or (< start 0) (> start (str-len str)))
             (error "str-last-ind: argument `start` is out of range"))
     )
     
     (when count
-        (unless (integer? count)
+        (unless (int? count)
             (error "str-last-ind: argument `count` not an integer"))
         (when (or (< count 0)
                   (and start (> count (+ start 1))))
@@ -266,5 +281,197 @@
             (__str-ind T str sub 0 0))
         (T
             (__str-ind T str sub (str-len str) (+ 1 (str-len str))))
+    )
+)
+
+(defun str-insert (str index sub)
+    (unless (string? str)
+        (error "str-insert: argument `str` not a string"))
+    (unless (or (string? sub) (char? sub))
+        (error "str-insert: argument `sub` not a string or character"))
+    (unless (int? index)
+        (error "str-insert: argument `index` not an integer"))
+    (when (or (< index 0) (> index (str-len str)))
+        (error "str-insert: argument `index` is out of range"))
+    (__str-insert str index sub)
+)
+
+(defun str-sub (str index &optional (len nil))
+    (unless (string? str)
+        (error "str-sub: argument `str` not a string"))
+    (unless (int? index)
+        (error "str-sub: argument `index` not an integer"))
+    (when len
+        (unless (int? len)
+            (error "str-sub: argument `len` not an integer"))
+        (when (or (< len 0) (> len (- (str-len str) index)))
+            (error "str-sub: argument `index` is out of range"))
+    )
+    (__str-sub str index (if len len (- (str-len str) index)))
+)
+
+(defun str-remove (str index &optional (len nil))
+    (unless (string? str)
+        (error "str-remove: argument `str` not a string"))
+    (unless (int? index)
+        (error "str-remove: argument `index` not an integer"))
+    (when len
+        (unless (int? len)
+            (error "str-remove: argument `len` not an integer"))
+        (when (or (< len 0) (> len (- (str-len str) index)))
+            (error "str-remove: argument `index` is out of range"))
+    )
+    (__str-remove str index (if len len (- (str-len str) index)))
+)
+
+(defun str-contains (str sub &optional (start 0) (count nil))
+    (unless (string? str)
+        (error "str-contains: argument `str` not a string"))
+    (unless (or (string? sub) (char? sub))
+        (error "str-contains: argument `sub` not a string or char"))
+    (unless (int? start)
+        (error "str-contains: argument `start` not an integer"))
+    (when (or (< start 0) (> start (str-len str)))
+        (error "str-contains: argument `start` is out of range"))
+    (when count
+        (unless (int? count)
+            (error "str-contains: argument `count` not an integer"))
+        (when (or (< count 0) (> (+ start count) (str-len str)))
+            (error "str-contains: argument `count` is out of range"))
+    )
+    (> (str-ind str sub start count) -1)
+)
+
+(defun str-starts-with (str sub)
+    (unless (string? str)
+        (error "str-starts-with: argument `str` not a string"))
+    (unless (or (string? sub) (char? sub))
+        (error "str-starts-with: argument `sub` not a string or char"))
+    (cond
+        ((string? sub)
+            (== 0 (str-cmp str 0 (str-len sub) sub 0 (str-len sub))))
+        ((char? sub)
+            (eq (str-at str 0) sub))
+    )
+)
+
+(defun str-ends-with (str sub)
+    (unless (string? str)
+        (error "str-ends-with: argument `str` not a string"))
+    (unless (or (string? sub) (char? sub))
+        (error "str-ends-with: argument `sub` not a string or char"))
+    (cond
+        ((string? sub)
+            (== 0
+                (str-cmp
+                    str (- (str-len str) (str-len sub)) (str-len sub)
+                    sub 0 (str-len sub))))
+        ((char? sub)
+            (eq (str-at str (- (str-len str) 1)) sub))
+    )
+)
+
+(defun str-empty? (str)
+    (unless (or (nil? str) (string? str))
+        (error "str-empty?: argument not a string"))
+    (or (nil? str) (eq str ""))
+)
+
+(defun __str-join-insert-separator (sep lst)
+    (cond
+        ((nil? lst) nil)
+        ((nil? (tail lst)) (list (head lst)))
+        (T (cons (head lst) (cons sep (__str-join-insert-separator sep (tail lst)))))
+    )
+)
+
+(defun str-join (sep strings)
+    (unless (string? sep)
+        (error "str-join: argument `sep` not a string"))
+    (unless (list? strings)
+        (error "str-join: argument `strings` not a list"))
+    (unless (all string? strings)
+        (error "str-join: argument `strings` not a list of strings"))
+    (str-cat-list (__str-join-insert-separator sep strings))
+)
+
+(defun __str-split (str sep remove-empty start)
+    (let ((ind (str-ind str sep start)))
+        (cond
+            ((== -1 ind)
+                (unless (and remove-empty (== start (str-len str)))
+                    (list (str-sub str start))
+                )
+            )
+            ((and remove-empty (== ind start))
+                (__str-split str sep remove-empty (+ ind (str-len sep)))
+            )
+            (T (cons
+                (str-sub str start (- ind start))
+                (__str-split str sep remove-empty (+ ind (str-len sep)))))
+        )
+    )
+)
+(defun str-split (str sep &optional (remove-empty nil))
+    (unless (string? str)
+        (error "str-split: argument `str` not a string"))
+    (unless (string? sep)
+        (error "str-split: argument `sep` not a string"))
+    (__str-split str sep remove-empty 0)
+)
+
+(defun dec-str->int (str i acc)
+    (if (== i (str-len str))
+        acc
+        (let ((ch (str-at str i)))
+            (cond
+                ((and (<= '0' ch '9'))
+                    (dec-str->int str (+ i 1) (+ (* acc 10) (- ch '0')))
+                )
+                (T
+                    (error "dec-str->int: unexpected character"))
+            )
+        )
+    )
+)
+(defun str->int (str)
+    (unless (string? str)
+        (error "str->int: argument not a string"))
+    (if (< (str-len str) 1)
+        0
+        (let ((ch (str-at str 0)))
+            (cond
+                ((== ch '+') (dec-str->int str 1 0))
+                ((== ch '-') (- (dec-str->int str 1 0)))
+                (T        (dec-str->int str 0 0))
+            )
+        )
+    )
+)
+
+(defun __int->str (num base acc)
+    (def digits "0123456789abcdefghijklmnopqrstuvwxyz")
+    (cond
+        ((== 0 num) acc)
+        (T
+            (__int->str
+                (/ num base)
+                base
+                (cons (str-at digits (% num base)) acc)))
+    )
+)
+(defun int->str (num &optional (base 10))
+    (unless (int? num)
+        (error "int->str: argument not an int"))
+    (let (
+            (n (abs num))
+            (digits (__int->str n base nil))
+            (characters
+                (cond
+                    ((< num 0) (cons '-' digits))
+                    ((> num 0) digits)
+                    (T ' ('0'))))
+        )
+        (str-from-list characters)
     )
 )

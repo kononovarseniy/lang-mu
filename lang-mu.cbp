@@ -102,6 +102,9 @@
 		<Unit filename="mu.scanner.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="parser.h" />
 		<Unit filename="print.c">
 			<Option compilerVar="CC" />

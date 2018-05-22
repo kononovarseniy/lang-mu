@@ -3,6 +3,7 @@
 #include "log.h"
 #include "stdlib/longnum_stub.h"
 #include "stdlib/str.h"
+#include "ctype.h"
 
 void hlp_check_args_count(int argc, int min, int max, char *caller)
 {
@@ -313,9 +314,163 @@ BUILTIN_FUNC(str_ind)
     return res;
 }
 
-BUILTIN_FUNC(str_insert);
-BUILTIN_FUNC(str_sub);
-BUILTIN_FUNC(str_remove);
+BUILTIN_FUNC(str_insert)
+{
+    hlp_check_args_count(argc, 3, 3, "__str-insert");
 
-BUILTIN_FUNC(to_lower);
-BUILTIN_FUNC(to_upper);
+    pString str = dereference(EVAL_ARG(0)).val_str;
+    size_t index = (size_t)longnum_to_long(dereference(EVAL_ARG(1)).val_int);
+    Expr arg_sub = EVAL_ARG(2);
+
+    pString res_str;
+    if (is_string(arg_sub))
+        res_str = string_insert(str, index, dereference(arg_sub).val_str);
+    else if (is_char(arg_sub))
+        res_str = string_insert_char(str, index, arg_sub.val_char);
+    else
+    {
+        log("__str-insert: third argument not a string or char");
+        exit(1);
+    }
+    if (str == NULL)
+    {
+        log("__str-insert: string_insert failed");
+        exit(1);
+    }
+
+    Expr res = make_string(exec, res_str);
+    free_string(res_str);
+    if (is_none(res))
+    {
+        log("__str-insert: make_string failed");
+        exit(1);
+    }
+    return res;
+}
+BUILTIN_FUNC(str_sub)
+{
+    hlp_check_args_count(argc, 3, 3, "__str-sub");
+
+    pString str = dereference(EVAL_ARG(0)).val_str;
+    size_t start = (size_t)longnum_to_long(dereference(EVAL_ARG(1)).val_int);
+    size_t len = (size_t)longnum_to_long(dereference(EVAL_ARG(2)).val_int);
+
+    pString res_str = string_substring(str, start, len);
+    if (res_str == NULL)
+    {
+        log("__str-sub: string_substring failed");
+        exit(1);
+    }
+
+    Expr res = make_string(exec, res_str);
+    free_string(res_str);
+    if (is_none(res))
+    {
+        log("__str-sub: make_string failed");
+        exit(1);
+    }
+    return res;
+}
+BUILTIN_FUNC(str_remove)
+{
+    hlp_check_args_count(argc, 3, 3, "__str-remove");
+
+    pString str = dereference(EVAL_ARG(0)).val_str;
+    size_t start = (size_t)longnum_to_long(dereference(EVAL_ARG(1)).val_int);
+    size_t len = (size_t)longnum_to_long(dereference(EVAL_ARG(2)).val_int);
+
+    pString res_str = string_remove(str, start, len);
+    if (res_str == NULL)
+    {
+        log("__str-remove: string_remove failed");
+        exit(1);
+    }
+
+    Expr res = make_string(exec, res_str);
+    free_string(res_str);
+    if (is_none(res))
+    {
+        log("__str-remove: make_string failed");
+        exit(1);
+    }
+    return res;
+}
+
+BUILTIN_FUNC(to_upper)
+{
+    hlp_check_args_count(argc, 1, 1, "to-upper");
+    Expr arg = EVAL_ARG(0);
+
+    if (is_string(arg))
+    {
+        pString res_str = string_to_upper(dereference(arg).val_str);
+        if (res_str == NULL)
+        {
+            log("to-upper: string_to_upper failed");
+            exit(1);
+        }
+        Expr res = make_string(exec, res_str);
+        free_string(res_str);
+        if (is_none(res))
+        {
+            log("to-upper: make_string failed");
+            exit(1);
+        }
+        return res;
+    }
+    else if (is_char(arg))
+    {
+        char res_char = toupper(arg.val_char);
+        Expr res = make_char(exec, res_char);
+        if (is_none(res))
+        {
+            log("to-upper: make_char failed");
+            exit(1);
+        }
+        return res;
+    }
+    else
+    {
+        log("to-upper: argument not a string or char");
+        exit(1);
+    }
+}
+BUILTIN_FUNC(to_lower)
+{
+    hlp_check_args_count(argc, 1, 1, "to-lower");
+    Expr arg = EVAL_ARG(0);
+
+    if (is_string(arg))
+    {
+        pString res_str = string_to_lower(dereference(arg).val_str);
+        if (res_str == NULL)
+        {
+            log("to-lower: string_to_lower failed");
+            exit(1);
+        }
+        Expr res = make_string(exec, res_str);
+        free_string(res_str);
+        if (is_none(res))
+        {
+            log("to-lower: make_string failed");
+            exit(1);
+        }
+        return res;
+    }
+    else if (is_char(arg))
+    {
+        char res_char = tolower(arg.val_char);
+        Expr res = make_char(exec, res_char);
+        if (is_none(res))
+        {
+            log("to-lower: make_char failed");
+            exit(1);
+        }
+        return res;
+    }
+    else
+    {
+        log("to-lower: argument not a string or char");
+        exit(1);
+    }
+}

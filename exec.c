@@ -305,6 +305,11 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "__str-cmp-sub", str_cmp_sub);
     register_function(exec, global, "__str-cat", str_cat);
     register_function(exec, global, "__str-ind", str_ind);
+    register_function(exec, global, "__str-insert", str_insert);
+    register_function(exec, global, "__str-sub", str_sub);
+    register_function(exec, global, "__str-remove", str_remove);
+    register_function(exec, global, "to-upper", to_upper);
+    register_function(exec, global, "to-lower", to_lower);
 }
 
 void exec_set_code(pExecutor exec, Expr code)

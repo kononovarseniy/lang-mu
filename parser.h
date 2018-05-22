@@ -3,7 +3,6 @@
 
 #include "stree.h"
 
-int yyparse();
-pSTree parsing_result;
+pSTree parse_file(char *name);
 
 #endif // PARSER_H_INCLUDED
