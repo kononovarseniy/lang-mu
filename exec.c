@@ -256,6 +256,7 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "cond", cond);
     register_function(exec, global, "let", let);
     register_function(exec, global, "error", error);
+    register_function(exec, global, "block", block);
     register_function(exec, global, "print", print);
     register_function(exec, global, "prints", prints);
     register_function(exec, global, "quote", quote);

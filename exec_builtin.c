@@ -128,7 +128,6 @@ BUILTIN_FUNC(print)
         print_expression(stdout, exec, value, PF_SHORT_QUOTE, 0);
         if (i < argc - 1) printf(" ");
     }
-    printf("\n");
     return exec->t;
 }
 
@@ -140,7 +139,6 @@ BUILTIN_FUNC(prints)
         print_expression(stdout, exec, value, PF_SHORT_QUOTE | PF_UNESCAPE, 0);
         if (i < argc - 1) printf(" ");
     }
-    printf("\n");
     return exec->t;
 }
 
@@ -826,9 +824,19 @@ BUILTIN_FUNC(let)
 }
 BUILTIN_FUNC(error)
 {
-    printf("ERROR: ");
-    prints(exec, exec->global, callContext, args, argc);
+    fprintf(stderr, "ERROR: ");
+    for (int i = 0; i < argc; i++)
+    {
+        Expr value = exec_eval(exec, callContext, args[i]);
+        print_expression(stderr, exec, value, PF_SHORT_QUOTE | PF_UNESCAPE, 0);
+        if (i < argc - 1) fprintf(stderr, " ");
+    }
     exit(1);
+}
+
+BUILTIN_FUNC(block)
+{
+    return exec_eval_array(exec, callContext, args, argc);
 }
 
 BUILTIN_FUNC(gensym)

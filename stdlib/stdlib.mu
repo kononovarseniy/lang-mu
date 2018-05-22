@@ -29,6 +29,9 @@
         (,condition nil)
         (T ,@actions)))
 
+(defmacro println (&rest args) `(block (print ,@args) (prints '\n')))
+(defmacro printlns (&rest args) `(prints ,@args '\n'))
+
 ///
 /// Returns `T` if `expr` is `nil`, otherwise returns nil`
 ///

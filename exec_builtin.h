@@ -102,6 +102,7 @@ BUILTIN_FUNC(eval_builtin);
 BUILTIN_FUNC(cond);
 BUILTIN_FUNC(let);
 BUILTIN_FUNC(error);
+BUILTIN_FUNC(block);
 
 BUILTIN_FUNC(print);
 BUILTIN_FUNC(prints);
