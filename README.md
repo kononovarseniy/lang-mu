@@ -1,8 +1,8 @@
 # lang-mu
-Language for working with matrices and vectors
+Just my own language.
 
 ### Build
-We are using Code::Blocks for build.  
+We use Code::Blocks to build.  
 To build, you need to install flex and bison.  
 
 ### Functions
