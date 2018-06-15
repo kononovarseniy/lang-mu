@@ -2,7 +2,6 @@
 Just my own language.
 
 ### Build
-We use Code::Blocks to build.  
 To build, you need to install flex and bison.  
 
 ### Functions

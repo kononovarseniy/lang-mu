@@ -7,16 +7,16 @@ include_directories(.)
 include_directories(stdlib)
 
 add_custom_command(
-        OUTPUT  ${CMAKE_CURRENT_SOURCE_DIR}/mu.scanner.c
-        COMMAND flex -o ${CMAKE_CURRENT_SOURCE_DIR}/mu.scanner.c ${CMAKE_CURRENT_SOURCE_DIR}/mu.l
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mu.l
+        OUTPUT  ${CMAKE_SOURCE_DIR}/mu.scanner.c
+        COMMAND flex -o ${CMAKE_SOURCE_DIR}/mu.scanner.c ${CMAKE_SOURCE_DIR}/mu.l
+        DEPENDS ${CMAKE_SOURCE_DIR}/mu.l
 )
 add_custom_command(
-        OUTPUT  ${CMAKE_CURRENT_SOURCE_DIR}/mu.parser.c
-                ${CMAKE_CURRENT_SOURCE_DIR}/mu.parser.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/mu.parser.output
-        COMMAND bison -v -d -o ${CMAKE_CURRENT_SOURCE_DIR}/mu.parser.c ${CMAKE_CURRENT_SOURCE_DIR}/mu.y
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mu.y
+        OUTPUT  ${CMAKE_SOURCE_DIR}/mu.parser.c
+                ${CMAKE_SOURCE_DIR}/mu.parser.h
+                ${CMAKE_SOURCE_DIR}/mu.parser.output
+        COMMAND bison -v -d -o ${CMAKE_SOURCE_DIR}/mu.parser.c ${CMAKE_SOURCE_DIR}/mu.y
+        DEPENDS ${CMAKE_SOURCE_DIR}/mu.y
 )
 
 add_executable(lang_mu
