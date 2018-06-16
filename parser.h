@@ -1,7 +1,7 @@
 #ifndef PARSER_H_INCLUDED
 #define PARSER_H_INCLUDED
 
-#include "stree.h"
+#include "parsing/stree.h"
 
 pSTree parse_file(char *name);
 

@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "log.h"
+#include "utils/log.h"
 
 extern int yylineno;
 

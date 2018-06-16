@@ -1,6 +1,6 @@
 #include "load.h"
 
-#include "log.h"
+#include "utils/log.h"
 
 Expr load_atom(pExecutor exec, pSTree item)
 {

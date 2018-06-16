@@ -2,12 +2,12 @@
 #include <stdio.h>
 
 #include "parser.h"
-#include "exec.h"
+#include "exec/exec.h"
 #include "load.h"
 #include "print.h"
-#include "log.h"
+#include "utils/log.h"
 
-#include "stdlib/longnum_stub.h"
+#include "types/longint.h"
 
 Expr load_library(pExecutor exec, char *path)
 {

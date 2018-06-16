@@ -4,65 +4,68 @@ project(lang_mu C)
 set(CMAKE_C_STANDARD 11)
 
 include_directories(.)
-include_directories(stdlib)
+
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/generated)
 
 add_custom_command(
-        OUTPUT  ${CMAKE_SOURCE_DIR}/mu.scanner.c
-        COMMAND flex -o ${CMAKE_SOURCE_DIR}/mu.scanner.c ${CMAKE_SOURCE_DIR}/mu.l
-        DEPENDS ${CMAKE_SOURCE_DIR}/mu.l
+        OUTPUT ${CMAKE_SOURCE_DIR}/generated/mu.scanner.c
+        COMMAND flex -o ${CMAKE_SOURCE_DIR}/generated/mu.scanner.c ${CMAKE_SOURCE_DIR}/parsing/mu.l
+        DEPENDS ${CMAKE_SOURCE_DIR}/parsing/mu.l
 )
 add_custom_command(
-        OUTPUT  ${CMAKE_SOURCE_DIR}/mu.parser.c
-                ${CMAKE_SOURCE_DIR}/mu.parser.h
-                ${CMAKE_SOURCE_DIR}/mu.parser.output
-        COMMAND bison -v -d -o ${CMAKE_SOURCE_DIR}/mu.parser.c ${CMAKE_SOURCE_DIR}/mu.y
-        DEPENDS ${CMAKE_SOURCE_DIR}/mu.y
+        OUTPUT ${CMAKE_SOURCE_DIR}/generated/mu.parser.c
+        ${CMAKE_SOURCE_DIR}/generated/mu.parser.h
+        ${CMAKE_SOURCE_DIR}/generated/mu.parser.output
+        COMMAND bison -v -d -o ${CMAKE_SOURCE_DIR}/generated/mu.parser.c ${CMAKE_SOURCE_DIR}/parsing/mu.y
+        DEPENDS ${CMAKE_SOURCE_DIR}/parsing/mu.y
 )
 
 add_executable(lang_mu
-        mu.scanner.c
-        mu.parser.c
-        mu.parser.h
-        #stdlib/longnum.c
-        #stdlib/longnum.h
-        stdlib/longnum_stub.c
-        stdlib/longnum_stub.h
-        stdlib/str.c
-        stdlib/str.h
-        context.c
-        context.h
-        exec.c
-        exec.h
-        exec_builtin.c
-        exec_builtin.h
-        exec_builtin_io.c
-        exec_builtin_predicates.c
-        exec_builtin_strings.c
-        exec_eval.c
-        exec_eval.h
-        exec_make.c
-        exec_make.h
-        exec_math.c
-        exec_math.h
-        exec_predicates.c
-        exec_predicates.h
-        exec_types.h
-        gc.c
-        gc.h
+        generated/mu.scanner.c
+        generated/mu.parser.c
+        generated/mu.parser.h
+
+        types/longint.c
+        types/longint.h
+        types/string.c
+        types/string.h
+
+        utils/log.h
+        utils/map.c
+        utils/map.h
+        utils/strutils.c
+        utils/strutils.h
+
+        exec/context.c
+        exec/context.h
+        exec/exec.c
+        exec/exec.h
+        exec/constructions.h
+        exec/constructions.c
+        exec/builtin/functions.h
+        exec/builtin/io.c
+        exec/builtin/predicates.c
+        exec/builtin/string.c
+        exec/eval.c
+        exec/eval.h
+        exec/make.c
+        exec/make.h
+        exec/math.c
+        exec/math.h
+        exec/predicates.c
+        exec/predicates.h
+        exec/types.h
+        exec/gc.c
+        exec/gc.h
         load.c
         load.h
-        log.h
         main.c
-        map.c
-        map.h
         parser.c
         parser.h
         print.c
         print.h
-        stree.c
-        stree.h
-        strutils.c
-        strutils.h)
+        parsing/stree.c
+        parsing/stree.h exec/builtin/math.c exec/builtin/list.c exec/builtin/control.c exec/builtin/evaluation.c)
 
 add_custom_command(
         TARGET lang_mu POST_BUILD
