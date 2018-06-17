@@ -14,7 +14,6 @@ pSTree create_stree(void)
 
     res->next = NULL;
     res->type = NODE_NONE;
-    res->data = NULL;
     return res;
 }
 

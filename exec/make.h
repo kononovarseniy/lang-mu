@@ -1,5 +1,5 @@
-#ifndef EXEC_MAKE_H_INCLUDED
-#define EXEC_MAKE_H_INCLUDED
+#ifndef LANG_MU_EXEC_MAKE_H_INCLUDED
+#define LANG_MU_EXEC_MAKE_H_INCLUDED
 
 #include <stdbool.h>
 
@@ -22,6 +22,6 @@ Expr make_function(pExecutor exec, pFunction value);
 Expr make_builtin_function(pExecutor exec, pBuiltinFunction func, pContext context);
 Expr make_user_function(pExecutor exec, pUserFunction func, pContext context, enum FunctionType type);
 Expr make_pair(pExecutor exec, Expr car, Expr cdr);
-Expr make_list(pExecutor exec, Expr *arr, int len);
+Expr make_list(pExecutor exec, Expr *arr, size_t len);
 
-#endif // EXEC_MAKE_H_INCLUDED
+#endif // LANG_MU_EXEC_MAKE_H_INCLUDED

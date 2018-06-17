@@ -1,8 +1,7 @@
-#ifndef LANG_MU_LONGINT_H_INCLUDED
-#define LANG_MU_LONGINT_H_INCLUDED
+#ifndef LANG_MU_TYPES_LONGINT_H_INCLUDED
+#define LANG_MU_TYPES_LONGINT_H_INCLUDED
 
 
-#define DIGIT_SIZE sizeof(short)
 typedef struct LongInt LongInt, *pLongInt;
 
 pLongInt create_longint(); //Создание числа
@@ -43,4 +42,4 @@ pLongInt longint_gcd(pLongInt a, pLongInt b);
 
 int longint_compare(pLongInt a, pLongInt b);
 
-#endif // LANG_MU_LONGINT_H_INCLUDED
+#endif // LANG_MU_TYPES_LONGINT_H_INCLUDED

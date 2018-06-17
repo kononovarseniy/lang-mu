@@ -252,7 +252,7 @@ size_t string_last_index_of(pString str, pString sub, size_t start, size_t count
         if (sub->len == 0)
             return start;
         else
-            return -1;
+            return STR_ERROR;
     }
     if (start == str->len)
     {
@@ -261,7 +261,7 @@ size_t string_last_index_of(pString str, pString sub, size_t start, size_t count
             if (sub->len == 0)
                 return 0;
             else
-                return -1;
+                return STR_ERROR;
         }
         else // start == str->len > 0
         {
@@ -297,13 +297,13 @@ size_t string_last_index_of_char(pString str, char sub, size_t start, size_t cou
     }
     if (count == 0)
     {
-        return -1;
+        return STR_ERROR;
     }
     if (start == str->len)
     {
         if (str->len == 0)
         {
-            return -1;
+            return STR_ERROR;
         }
         else
         {
@@ -405,7 +405,7 @@ pString string_to_upper(pString str)
         return NULL;
     }
     for (size_t i = 0; i < str->len; i++)
-        res->buf[i] = toupper(str->buf[i]);
+        res->buf[i] = (char) toupper(str->buf[i]);
     return res;
 }
 
@@ -418,6 +418,6 @@ pString string_to_lower(pString str)
         return NULL;
     }
     for (size_t i = 0; i < str->len; i++)
-        res->buf[i] = tolower(str->buf[i]);
+        res->buf[i] = (char) tolower(str->buf[i]);
     return res;
 }

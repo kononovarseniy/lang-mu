@@ -6,14 +6,14 @@
 
 int gc_adjust_size(pHeap heap, size_t size)
 {
-    int old_size = heap->size;
-    int cur_blocks = old_size % BLOCK_SIZE;
-    int req_blocks = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    size_t old_size = heap->size;
+    size_t cur_blocks = old_size % BLOCK_SIZE;
+    size_t req_blocks = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
     if (cur_blocks == req_blocks) return 1;
-    int new_size = req_blocks * BLOCK_SIZE;
+    size_t new_size = req_blocks * BLOCK_SIZE;
 
     pPointerInfo array = realloc(heap->values, new_size * sizeof(PointerInfo));
-    if (array == NULL && req_blocks != 0)
+    if (array == NULL && new_size != 0)
     {
         perror("gc_adjust_size: realloc failed");
         return 0;
@@ -67,7 +67,7 @@ Expr gc_register(pHeap heap, Expr value)
     return res;
 }
 
-void gc_free(pHeap heap, pPointerInfo info)
+void gc_free(pPointerInfo info)
 {
     if (!(info->flags & GC_USED))
         return;
@@ -110,7 +110,7 @@ void free_heap(pHeap heap)
     {
         if (heap->values[i].flags & GC_USED)
         {
-            gc_free(heap, heap->values + i);
+            gc_free(heap->values + i);
         }
     }
     free(heap->values);
@@ -297,7 +297,7 @@ int gc_del_pointers(pExecutor exec)
                 info->flags &= ~GC_REFERENCED;
             else
             {
-                gc_free(heap, info);
+                gc_free(info);
                 deleted++;
             }
         }

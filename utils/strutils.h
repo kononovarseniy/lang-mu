@@ -3,10 +3,10 @@
 
 #include "types/string.h"
 
-char *copystr(const char *s);
-void strtolower(char *s);
+char *copy_string(const char *s);
+void str_to_lower(char *s);
 
 pString unescape_string(char *str, int len);
-char *escape_string(char *str, int len);
+char *escape_string(char *str, size_t len);
 
 #endif // STRUTILS_H_INCLUDED

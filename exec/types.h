@@ -1,16 +1,21 @@
-#ifndef EXEC_TYPES_H_INCLUDED
-#define EXEC_TYPES_H_INCLUDED
+#ifndef LANG_MU_EXEC_TYPES_H_INCLUDED
+#define LANG_MU_EXEC_TYPES_H_INCLUDED
+
+#include <limits.h>
 
 #include "types/longint.h"
 #include "types/string.h"
+#include "utils/map.h"
 
-#include "context.h"
-
-typedef struct Context Context, *pContext; // Defined in context.h
-typedef struct ContextStack ContextStack, *pContextStack; // Defined in context.h
+#define EXPR_ERROR INT_MAX
+#define EXPR_NOT_FOUND (INT_MAX - 1)
 
 enum ValueType;
 typedef struct Expr Expr;
+
+typedef struct Context Context, *pContext;
+typedef struct ContextStack ContextStack, *pContextStack;
+typedef struct ContextStackFrame ContextStackFrame, *pContextStackFrame;
 
 enum GCFlags;
 typedef struct Pointer Pointer, *pPointer;
@@ -58,6 +63,26 @@ struct Expr
         pFunction val_func;
         pPointer val_ptr;
     };
+};
+
+struct Context
+{
+    int gc_index;
+    int links;
+    pContext base;
+    pMap bindings;
+    pMap macros;
+};
+
+struct ContextStack
+{
+    pContextStackFrame head;
+};
+
+struct ContextStackFrame
+{
+    pContext context;
+    pContextStackFrame next;
 };
 
 enum GCFlags
@@ -140,4 +165,4 @@ struct Executor
     Expr comma_atsign;
 };
 
-#endif // EXEC_TYPES_H_INCLUDED
+#endif // LANG_MU_EXEC_TYPES_H_INCLUDED

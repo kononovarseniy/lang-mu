@@ -208,7 +208,7 @@ int parse_arguments(pExecutor exec, pUserFunction func, Expr *args, int argc)
     return 1;
 }
 
-pUserFunction build_user_function(pExecutor exec, Expr *args, int argc, Expr *body, int len)
+pUserFunction build_user_function(pExecutor exec, Expr *args, int argc, Expr *body, size_t len)
 {
     Expr bodyExpr = make_list(exec, body, len);
     if (is_none(bodyExpr))
@@ -233,7 +233,7 @@ pUserFunction build_user_function(pExecutor exec, Expr *args, int argc, Expr *bo
     return res;
 }
 
-Expr lambda_impl(pExecutor exec, pContext context, Expr *args, int argc, enum FunctionType type)
+Expr lambda_impl(pExecutor exec, pContext context, Expr *args, size_t argc, enum FunctionType type)
 {
     /*
         (lambda (ar gu me nts) body)
@@ -248,7 +248,7 @@ Expr lambda_impl(pExecutor exec, pContext context, Expr *args, int argc, enum Fu
     Expr *f_args = get_list(exec, args[0], &f_argc);
 
     Expr *body = args + 1;
-    int bodyLen = argc - 1;
+    size_t bodyLen = argc - 1;
 
     pUserFunction func = build_user_function(exec, f_args, f_argc, body, bodyLen);
     free(f_args);
@@ -270,12 +270,12 @@ Expr lambda_impl(pExecutor exec, pContext context, Expr *args, int argc, enum Fu
 
 BUILTIN_FUNC(lambda)
 {
-    return lambda_impl(exec, callContext, args, argc, FT_USER);
+    return lambda_impl(exec, callContext, args, (size_t) argc, FT_USER);
 }
 
 BUILTIN_FUNC(macro)
 {
-    return lambda_impl(exec, callContext, args, argc, FT_USER_MACRO);
+    return lambda_impl(exec, callContext, args, (size_t) argc, FT_USER_MACRO);
 }
 
 /* Setters */

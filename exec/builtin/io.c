@@ -34,7 +34,7 @@ char *read_line(FILE *file)
 {
 	int size = BLOCK_SIZE;
 	char *res = malloc(BLOCK_SIZE * sizeof(char));
-	char ch;
+	int ch;
 	int i = 0;
 	int isEnd = 0;
 	do
@@ -52,7 +52,7 @@ char *read_line(FILE *file)
 		}
 		else
 		{
-			res[i++] = ch;
+			res[i++] = (char) ch;
 		}
 	} while (!isEnd);
 	if (i > 0 && res[i - 1] == '\r')

@@ -2,10 +2,10 @@
 // Created by arseniy on 16.06.18.
 //
 
-#ifndef LANG_MU_CONSTRUCTIONS_H
-#define LANG_MU_CONSTRUCTIONS_H
+#ifndef LANG_MU_EXEC_CONSTRUCTIONS_H_INCLUDED
+#define LANG_MU_EXEC_CONSTRUCTIONS_H_INCLUDED
 
-#include "exec/exec.h"
+#include "exec.h"
 
 BUILTIN_FUNC(cond);
 
@@ -40,4 +40,4 @@ BUILTIN_FUNC(quote);
 
 BUILTIN_FUNC(backquote);
 
-#endif //LANG_MU_CONSTRUCTIONS_H
+#endif // LANG_MU_EXEC_CONSTRUCTIONS_H_INCLUDED

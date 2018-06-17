@@ -8,23 +8,23 @@
 
 #include "log.h"
 
-char *copystr(const char *s)
+char *copy_string(const char *s)
 {
     char *res = malloc((strlen(s) + 1) * sizeof(char));
     strcpy(res, s);
     return res;
 }
 
-void strtolower(char *s)
+void str_to_lower(char *s)
 {
     while (*s != '\0')
     {
-        *s = tolower(*s);
+        *s = (char) tolower(*s);
         s++;
     }
 }
 
-int hextodec(char ch)
+int hex_to_int(char ch)
 {
     if (ch >= '0' && ch <= '9') return ch - '0';
     if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
@@ -32,7 +32,7 @@ int hextodec(char ch)
     return -1;
 }
 
-char tohex(int digit)
+char int_to_hex(int digit)
 {
     return "0123456789abcdef"[digit];
 }
@@ -45,7 +45,7 @@ pString unescape_string(char *str, int len)
         perror("unescape_string: malloc failed");
         return NULL;
     }
-    int pos = 0;
+    size_t pos = 0;
     int i = 0 ;
     while (i < len)
     {
@@ -70,16 +70,16 @@ pString unescape_string(char *str, int len)
             case 'v': res[pos++] = '\v'; break;
             case 'x':
                 {
-                    char d1, d2;
+                    int d1, d2;
                     if (len - i < 2 ||
-                        (d1 = hextodec(str[i++])) == -1 ||
-                        (d2 = hextodec(str[i++])) == -1)
+                        (d1 = hex_to_int(str[i++])) == -1 ||
+                        (d2 = hex_to_int(str[i++])) == -1)
                     {
                         log("Unrecognized escape sequence \\xnn");
                         free(res);
                         return NULL;
                     }
-                    res[pos++] = d1 * 16 + d2;
+                    res[pos++] = (char) (d1 * 16 + d2);
                 }
                 break;
             default:
@@ -101,7 +101,7 @@ pString unescape_string(char *str, int len)
     return res_str;
 }
 
-void write_to_buf(char **buf, int *len, int pos, char ch)
+void write_to_buf(char **buf, size_t *len, size_t pos, char ch)
 {
     if (*len == -1) return; // Caller ignored previous error
     if (pos >= *len)
@@ -111,7 +111,7 @@ void write_to_buf(char **buf, int *len, int pos, char ch)
         if (new_buf == NULL)
         {
             perror("append_to_buf: realloc failed");
-            *len = -1;
+            *len = SIZE_MAX;
             return;
         }
         *buf = new_buf;
@@ -119,20 +119,20 @@ void write_to_buf(char **buf, int *len, int pos, char ch)
     (*buf)[pos] = ch;
 }
 
-char *escape_string(char *str, int len)
+char *escape_string(char *str, size_t len)
 {
     char *main_chars = "\\\'\"\a\b\f\n\r\t\v";
     char *main_esc = "\\\'\"abfnrtv";
 
-    int buf_len = len + 1;
+    size_t buf_len = len + 1;
     char *buf = malloc(buf_len * sizeof(char));
     if (buf == NULL)
     {
         perror("escape_string: malloc failed");
         return NULL;
     }
-    int dst = 0;
-    int src = 0;
+    size_t dst = 0;
+    size_t src = 0;
     while (src < len)
     {
         char c = str[src++];
@@ -158,15 +158,15 @@ char *escape_string(char *str, int len)
             {
                 write_to_buf(&buf, &buf_len, dst++, '\\');
                 write_to_buf(&buf, &buf_len, dst++, 'x');
-                write_to_buf(&buf, &buf_len, dst++, tohex('c' / 10 % 10));
-                write_to_buf(&buf, &buf_len, dst++, tohex('c' % 10));
+                write_to_buf(&buf, &buf_len, dst++, int_to_hex('c' / 10 % 10));
+                write_to_buf(&buf, &buf_len, dst++, int_to_hex('c' % 10));
             }
         }
     }
-    write_to_buf(&buf, &buf_len, dst++, '\0');
+    write_to_buf(&buf, &buf_len, dst, '\0');
 
     // handle errors
-    if (len == -1)
+    if (len == SIZE_MAX)
     {
         free(buf);
         return NULL;

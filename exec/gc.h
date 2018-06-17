@@ -1,5 +1,5 @@
-#ifndef GC_H_INCLUDED
-#define GC_H_INCLUDED
+#ifndef LANG_MU_EXEC_GC_H_INCLUDED
+#define LANG_MU_EXEC_GC_H_INCLUDED
 
 #include "exec.h"
 
@@ -11,4 +11,4 @@ Expr gc_register(pHeap heap, Expr value);
 void gc_collectv(pExecutor exec, int *atoms, int *pairs, int *pointers);
 void gc_collect(pExecutor exec);
 
-#endif // GC_H_INCLUDED
+#endif // LANG_MU_EXEC_GC_H_INCLUDED

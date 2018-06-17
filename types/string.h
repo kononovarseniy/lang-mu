@@ -1,5 +1,5 @@
-#ifndef STR_H_INCLUDED
-#define STR_H_INCLUDED
+#ifndef LANG_MU_TYPES_STRING_H_INCLUDED
+#define LANG_MU_TYPES_STRING_H_INCLUDED
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -40,4 +40,4 @@ pString string_remove(pString str, size_t index, size_t len);
 pString string_to_upper(pString str);
 pString string_to_lower(pString str);
 
-#endif // STR_H_INCLUDED
+#endif // LANG_MU_TYPES_STRING_H_INCLUDED

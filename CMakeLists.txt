@@ -25,6 +25,9 @@ add_executable(lang_mu
         generated/mu.parser.c
         generated/mu.parser.h
 
+        parsing/stree.c
+        parsing/stree.h
+
         types/longint.c
         types/longint.h
         types/string.c
@@ -36,36 +39,43 @@ add_executable(lang_mu
         utils/strutils.c
         utils/strutils.h
 
-        exec/context.c
-        exec/context.h
-        exec/exec.c
-        exec/exec.h
-        exec/constructions.h
-        exec/constructions.c
+        exec/builtin/control.c
+        exec/builtin/evaluation.c
         exec/builtin/functions.h
         exec/builtin/io.c
+        exec/builtin/list.c
+        exec/builtin/math.c
         exec/builtin/predicates.c
         exec/builtin/string.c
+
+        exec/exec.h
+        exec/types.h
+        exec/constructions.h
+        exec/constructions.c
+        exec/context.c
+        exec/context.h
         exec/eval.c
         exec/eval.h
+        exec/executor.c
+        exec/executor.h
+        exec/function.c
+        exec/function.h
+        exec/gc.c
+        exec/gc.h
         exec/make.c
         exec/make.h
         exec/math.c
         exec/math.h
         exec/predicates.c
         exec/predicates.h
-        exec/types.h
-        exec/gc.c
-        exec/gc.h
-        load.c
-        load.h
+
         main.c
         parser.c
         parser.h
+        load.c
+        load.h
         print.c
-        print.h
-        parsing/stree.c
-        parsing/stree.h exec/builtin/math.c exec/builtin/list.c exec/builtin/control.c exec/builtin/evaluation.c)
+        print.h)
 
 add_custom_command(
         TARGET lang_mu POST_BUILD

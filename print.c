@@ -87,7 +87,7 @@ void print_list(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, in
     free(list);
 }
 
-void print_int(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int indent)
+void print_int(FILE *f, Expr expr, enum PrintingFlags flags, int indent)
 {
     print_indent(f, indent, flags);
     print_quotation(f, &flags);
@@ -101,7 +101,7 @@ void print_int(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int
     print_wrap(f, flags);
 }
 
-void print_real(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int indent)
+void print_real(FILE *f, Expr expr, enum PrintingFlags flags, int indent)
 {
     print_indent(f, indent, flags);
     print_quotation(f, &flags);
@@ -109,7 +109,7 @@ void print_real(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, in
     print_wrap(f, flags);
 }
 
-void print_string(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int indent)
+void print_string(FILE *f, Expr expr, enum PrintingFlags flags, int indent)
 {
     print_indent(f, indent, flags);
     print_quotation(f, &flags);
@@ -129,7 +129,7 @@ void print_string(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, 
     print_wrap(f, flags);
 }
 
-void print_char(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int indent)
+void print_char(FILE *f, Expr expr, enum PrintingFlags flags, int indent)
 {
     print_indent(f, indent, flags);
     print_quotation(f, &flags);
@@ -145,7 +145,7 @@ void print_char(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, in
     print_wrap(f, flags);
 }
 
-void print_func(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags flags, int indent)
+void print_func(FILE *f, Expr expr, enum PrintingFlags flags, int indent)
 {
     print_indent(f, indent, flags);
     print_quotation(f, &flags);
@@ -170,19 +170,19 @@ void print_expression(FILE *f, pExecutor exec, Expr expr, enum PrintingFlags fla
         print_list(f, exec, expr, flags, indent);
         break;
     case VT_INT_PTR:
-        print_int(f, exec, expr, flags, indent);
+        print_int(f, expr, flags, indent);
         break;
     case VT_REAL:
-        print_real(f, exec, expr, flags, indent);
+        print_real(f, expr, flags, indent);
         break;
     case VT_STRING_PTR:
-        print_string(f, exec, expr, flags, indent);
+        print_string(f, expr, flags, indent);
         break;
     case VT_CHAR:
-        print_char(f, exec, expr, flags, indent);
+        print_char(f, expr, flags, indent);
         break;
     case VT_FUNC_PTR:
-        print_func(f, exec, expr, flags, indent);
+        print_func(f, expr, flags, indent);
         break;
     default:
         log("print_expression: unknown value type");

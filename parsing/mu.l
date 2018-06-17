@@ -11,8 +11,6 @@
 
 int yyerror(char *s);
 
-int hextodec(char ch);
-
 pLongInt parse_int(char *text, int base);
 double parse_real(char *text, int len);
 void scanner_error(const char *format, ...);
@@ -144,7 +142,7 @@ char        "\'"{str_char}"\'"
         yylval.name = name;
         return NAME;
     }
-"/"  { yylval.name = copystr(yytext); return NAME; }
+"/"  { yylval.name = copy_string(yytext); return NAME; }
 
 [ \t\r]*    { }
 [\n]        { yylineno++; }

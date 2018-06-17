@@ -231,11 +231,11 @@ BUILTIN_FUNC(str_cmp_sub)
 {
     hlp_check_args_count(argc, 6, 6, "__str-cmp-sub");
     pString a = dereference(EVAL_ARG(0)).val_str;
-    size_t a_start = longint_to_long(dereference(EVAL_ARG(1)).val_int);
-    size_t a_len = longint_to_long(dereference(EVAL_ARG(2)).val_int);
+    size_t a_start = (size_t) longint_to_long(dereference(EVAL_ARG(1)).val_int);
+    size_t a_len = (size_t) longint_to_long(dereference(EVAL_ARG(2)).val_int);
     pString b = dereference(EVAL_ARG(3)).val_str;
-    size_t b_start = longint_to_long(dereference(EVAL_ARG(4)).val_int);
-    size_t b_len = longint_to_long(dereference(EVAL_ARG(5)).val_int);
+    size_t b_start = (size_t) longint_to_long(dereference(EVAL_ARG(4)).val_int);
+    size_t b_len = (size_t) longint_to_long(dereference(EVAL_ARG(5)).val_int);
 
     int cmp_res = string_compare_sub(a, a_start, a_len, b, b_start, b_len);
     Expr res = make_int_from_long(exec, cmp_res);
@@ -256,7 +256,7 @@ BUILTIN_FUNC(str_cat)
     }
     for (size_t i = 0; i < argc; i++)
         strs[i] = dereference(EVAL_ARG(i)).val_str;
-    pString res_str = string_concat(strs, argc);
+    pString res_str = string_concat(strs, (size_t) argc);
     free(strs);
 
     if (res_str == NULL)
@@ -420,7 +420,7 @@ BUILTIN_FUNC(to_upper)
     }
     else if (is_char(arg))
     {
-        char res_char = toupper(arg.val_char);
+        char res_char = (char) toupper(arg.val_char);
         Expr res = make_char(exec, res_char);
         if (is_none(res))
         {
@@ -459,7 +459,7 @@ BUILTIN_FUNC(to_lower)
     }
     else if (is_char(arg))
     {
-        char res_char = tolower(arg.val_char);
+        char res_char = (char) tolower(arg.val_char);
         Expr res = make_char(exec, res_char);
         if (is_none(res))
         {

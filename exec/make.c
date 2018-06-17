@@ -256,10 +256,11 @@ Expr make_pair(pExecutor exec, Expr car, Expr cdr)
     return res;
 }
 
-Expr make_list(pExecutor exec, Expr *arr, int len)
+Expr make_list(pExecutor exec, Expr *arr, size_t len)
 {
     Expr list = exec->nil;
-    for (int i = len - 1; i >= 0; i--)
+    // Loop from len - 1 to 0 inclusive.
+    for (size_t i = len - 1; i != SIZE_MAX; i--)
     {
         Expr tail = make_pair(exec, arr[i], list);
         if (tail.type == VT_NONE)

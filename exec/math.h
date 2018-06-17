@@ -1,10 +1,9 @@
-#ifndef EXEC_MATH_H_INCLUDED
-#define EXEC_MATH_H_INCLUDED
+#ifndef LANG_MU_EXEC_MATH_H_INCLUDED
+#define LANG_MU_EXEC_MATH_H_INCLUDED
 
 #include <stdbool.h>
 
 #include "exec.h"
-#include "types/longint.h"
 
 long exec_int_to_long(pExecutor exec, Expr num);
 double exec_int_to_double(pExecutor exec, Expr num);
@@ -35,4 +34,4 @@ Expr exec_quotient(pExecutor exec, Expr a, Expr b);
 Expr exec_division_inverse(pExecutor exec, Expr a);
 Expr exec_remainder(pExecutor exec, Expr a, Expr b);
 
-#endif // EXEC_MATH_H_INCLUDED
+#endif // LANG_MU_EXEC_MATH_H_INCLUDED

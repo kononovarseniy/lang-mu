@@ -15,7 +15,7 @@ Expr load_library(pExecutor exec, char *path)
     Expr code = load_parsed_tree(exec, code_tree);
     free_stree(code_tree);
 
-    exec_set_code(exec, code);
+    add_code(exec, code);
     Expr res = exec_execute(exec);
     return res;
 }
@@ -23,7 +23,7 @@ Expr load_library(pExecutor exec, char *path)
 Expr execute_program(pSTree code_tree)
 {
     pExecutor exec = create_executor();
-    exec_init(exec);
+    init_executor(exec);
 
     load_library(exec, "stdlib/stdlib.mu");
     /*
@@ -33,7 +33,7 @@ Expr execute_program(pSTree code_tree)
     */
 
     Expr code = load_parsed_tree(exec, code_tree);
-    exec_set_code(exec, code);
+    add_code(exec, code);
 
     /*
     printf("\n====================\n");

@@ -134,7 +134,7 @@ pSTree decorate(char *atom, pSTree item)
     res->type = NODE_LIST;
     res->child = create_stree();
     res->child->type = NODE_NAME;
-    res->child->name = copystr(atom);
+    res->child->name = copy_string(atom);
     res->child->next = item;
     return res;
 }
@@ -143,7 +143,7 @@ pSTree parser_create_atom(char *atom)
 {
     pSTree res = create_stree();
     res->type = NODE_NAME;
-    res->name = copystr(atom);
+    res->name = copy_string(atom);
     return res;
 }
 

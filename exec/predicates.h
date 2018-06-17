@@ -1,5 +1,5 @@
-#ifndef EXEC_PREDICATES_H_INCLUDED
-#define EXEC_PREDICATES_H_INCLUDED
+#ifndef LANG_MU_EXEC_PREDICATES_H_INCLUDED
+#define LANG_MU_EXEC_PREDICATES_H_INCLUDED
 
 #include <stdbool.h>
 
@@ -19,4 +19,4 @@ _Bool is_function(Expr expr);
 _Bool is_macro(Expr expr);
 _Bool is_list(pExecutor exec, Expr expr);
 
-#endif // EXEC_PREDICATES_H_INCLUDED
+#endif // LANG_MU_EXEC_PREDICATES_H_INCLUDED

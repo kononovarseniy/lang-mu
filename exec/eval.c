@@ -26,7 +26,7 @@ int check_args_count(pUserFunction func, int argc)
     return 1;
 }
 
-int bind_req_and_opt_args(pExecutor exec, pContext execContext, pUserFunction func, Expr *args, int argc)
+int bind_req_and_opt_args(pContext execContext, pUserFunction func, Expr *args, int argc)
 {
     int fullc = func->argc + func->optc;
     for (int i = 0; i < fullc; i++)
@@ -60,7 +60,7 @@ int bind_rest(pExecutor exec, pContext execContext, pUserFunction func, Expr *ar
         Expr rest_value = exec->nil;
         int restc = argc - fullc;
         if (restc > 0)
-            rest_value = make_list(exec, args + fullc, restc);
+            rest_value = make_list(exec, args + fullc, (size_t) restc);
 
         if (context_bind(execContext, func->rest.val_atom, rest_value) == MAP_FAILED)
         {
@@ -71,9 +71,9 @@ int bind_rest(pExecutor exec, pContext execContext, pUserFunction func, Expr *ar
     return 1;
 }
 
-int user_function_bind_args(pExecutor exec, pContext execContext, pContext callContext, pUserFunction func, Expr *args, int argc)
+int user_function_bind_args(pExecutor exec, pContext execContext, pUserFunction func, Expr *args, int argc)
 {
-    if (!bind_req_and_opt_args(exec, execContext, func, args, argc))
+    if (!bind_req_and_opt_args(execContext, func, args, argc))
     {
         return 0;
     }
@@ -113,7 +113,7 @@ Expr exec_user_function(pExecutor exec, pFunction func, pContext callContext, Ex
     }
     // Bind arguments
     pContext execContext = context_inherit(func->context);
-    if (!user_function_bind_args(exec, execContext, callContext, user, values, argc))
+    if (!user_function_bind_args(exec, execContext, user, values, argc))
     {
         log("exec_user_function: user_function_bind_args failed");
         free(values);

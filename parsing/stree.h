@@ -22,7 +22,6 @@ struct STree
     enum NodeType type;
     union
     {
-        void *data;
         char *name;
         pSTree child;
 

@@ -1,7 +1,11 @@
-#include "exec.h"
+//
+// Created by arseniy on 17.06.18.
+//
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "executor.h"
 
 #include "utils/strutils.h"
 #include "utils/log.h"
@@ -95,6 +99,7 @@ pExecutor create_executor(void)
 
     return res;
 }
+
 void free_executor(pExecutor exec)
 {
     context_unlink(exec->global);
@@ -110,56 +115,6 @@ void free_executor(pExecutor exec)
     free_heap(exec->heap);
     free_context_stack(exec->stack);
     free(exec);
-}
-pFunction create_function()
-{
-    pFunction res = malloc(sizeof(Function));
-    if (res == NULL)
-    {
-        perror("create_function: malloc failed");
-        return NULL;
-    }
-    res->type = FT_NONE;
-    res->context = NULL;
-    res->gc_index = 0;
-    return res;
-}
-
-void free_function(pFunction func)
-{
-    switch (func->type)
-    {
-        case FT_BUILTIN:
-            break;
-        case FT_USER_MACRO:
-        case FT_USER:
-            free_user_function(func->user);
-            break;
-        default:
-            log("free_function: unknown function type. Unable to free");
-            break;
-    }
-    context_unlink(func->context);
-    free(func);
-}
-
-pUserFunction create_user_function()
-{
-    pUserFunction res = malloc(sizeof(UserFunction));
-    if (res == NULL)
-    {
-        log("create_user_function: malloc failed");
-        return NULL;
-    }
-    return res;
-}
-
-void free_user_function(pUserFunction func)
-{
-    free(func->args);
-    free(func->opt);
-    free(func->def);
-    free(func);
 }
 
 Expr register_atom(pExecutor exec, pContext context, char *name, int bind)
@@ -217,13 +172,13 @@ Expr register_alias(pExecutor exec, pContext context, char *name, char *alias)
     return value;
 }
 
-void exec_init(pExecutor exec)
+void init_executor(pExecutor exec)
 {
     // Create global
     pContext global = create_context();
     if (global == NULL)
     {
-        log("exec_init: create_context failed");
+        log("init_executor: create_context failed");
         exit(1);
     }
     context_stack_push(exec->stack, global);
@@ -315,12 +270,12 @@ void exec_init(pExecutor exec)
     register_function(exec, global, "scanline", scanline);
 }
 
-void exec_set_code(pExecutor exec, Expr code)
+void add_code(pExecutor exec, Expr code)
 {
     Expr pair = make_pair(exec, code, exec->code);
     if (is_none(pair))
     {
-        log("exec_set_code: make_pair failed");
+        log("add_code: make_pair failed");
         exit(1);
     }
     exec->code = pair;
@@ -346,7 +301,7 @@ char *normalize_name(char *name)
         perror("add_atom: strdup failed");
         return NULL;
     }
-    strtolower(copy);
+    str_to_lower(copy);
     return copy;
 }
 
