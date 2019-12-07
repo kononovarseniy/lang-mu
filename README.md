@@ -1,5 +1,5 @@
 # lang-mu
-Just my own language.
+lang-mu is a lisp-like interpreted programming language.
 
 ### Build
 To build, you need to install flex and bison.  
@@ -46,7 +46,7 @@ eq
 (**eq** *left* *right*)
 Checks the equality of values  
 **returns**:  
-`T` if **left** and **right** are equal atoms, numbers ot strings  
+`T` if **left** and **right** are equal atoms, numbers or strings  
 `nil` otherwise
 
 and
@@ -73,8 +73,8 @@ xor
 Exclusive-disjunction  
 **returns**: `T` if only one of arguments is true value, and `nil` otherwise
 
-Not documented function
------------------------
+Not documented functions
+------------------------
 * lambda
 * cond
 * print
